@@ -107,14 +107,11 @@ if st.session_state.get('datos_cargados', False):
             }))
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ---- INICIO DE LA NUEVA SECCIÓN CONTRAÍBLE ----
+    # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=False):
         
-        # SECCIÓN PARA AGREGAR Y MOSTRAR AVOIDS
         st.subheader("Agregar nuevas palabras a Avoids")
-
         avoid_column_names = st.session_state.avoids_df.columns.tolist()
-
         with st.form(key="avoid_form"):
             nueva_palabra = st.text_input("Escribe una palabra nueva:")
             categoria = st.selectbox("Categoría", avoid_column_names)
@@ -145,54 +142,74 @@ if st.session_state.get('datos_cargados', False):
             with col3:
                 st.dataframe(avoids_display[col3_name].dropna().reset_index(drop=True), use_container_width=True)
 
-
-        # LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS
         avoid_list = pd.concat([
-            avoids_display[col] for col in avoid_column_names
+            st.session_state.avoids_df[col] for col in avoid_column_names
         ]).dropna().unique().tolist()
+        
+        st.divider()
 
+        # ---- INICIO DE CAMBIO RADICAL ----
+
+        # --- PALABRAS ÚNICAS DEL CLIENTE ---
         st.subheader("Palabras únicas del cliente (filtradas)")
         filtro_cust = st.checkbox("Ocultar frecuencia ≤ 2", value=True, key="fc")
-
+        
         with st.expander("Ver/Ocultar Palabras del Cliente", expanded=True):
             df_cust = st.session_state.df_cust_unique
-            if not df_cust.empty:
-                word_column_cust = df_cust.columns[0]
-                freq_column_cust = df_cust.columns[1] if len(df_cust.columns) > 1 else None
+            df_cust_filtered = df_cust[~df_cust[df_cust.columns[0]].isin(avoid_list)]
+            if filtro_cust and len(df_cust.columns) > 1:
+                freq_col_cust = df_cust.columns[1]
+                df_cust_filtered[freq_col_cust] = pd.to_numeric(df_cust_filtered[freq_col_cust], errors='coerce')
+                df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_col_cust].notna() & (df_cust_filtered[freq_col_cust] > 2)]
 
-                df_cust_filtered = df_cust[~df_cust[word_column_cust].isin(avoid_list)]
-
-                if filtro_cust and freq_column_cust:
-                    df_cust_filtered[freq_column_cust] = pd.to_numeric(df_cust_filtered[freq_column_cust], errors='coerce')
-                    df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_column_cust].notna() & (df_cust_filtered[freq_column_cust] > 2)]
+            if not df_cust_filtered.empty:
+                # Crear encabezados de tabla manualmente
+                header_cols = [0.5] + [1.5] + [1] * (len(df_cust_filtered.columns) - 1)
+                cols = st.columns(header_cols)
+                cols[0].write("**Sel.**")
+                for i, col_name in enumerate(df_cust_filtered.columns):
+                    cols[i+1].write(f"**{col_name}**")
                 
-                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
-                st.dataframe(df_cust_filtered.reset_index(drop=True).style.set_properties(**{
-                    "white-space": "normal", "word-wrap": "break-word"
-                }))
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.divider()
+
+                # Iterar para mostrar cada fila con un checkbox
+                for index, row in df_cust_filtered.iterrows():
+                    cols = st.columns(header_cols)
+                    cols[0].checkbox("", key=f"cust_cb_{index}")
+                    for i, col_name in enumerate(df_cust_filtered.columns):
+                        cols[i+1].write(row[col_name])
             else:
                 st.write("No hay datos de palabras únicas del cliente para mostrar.")
         
+        # --- PALABRAS ÚNICAS DE COMPETIDORES ---
         st.subheader("Palabras únicas de competidores (filtradas)")
         filtro_comp = st.checkbox("Ocultar frecuencia ≤ 2 (competidores)", value=True, key="fc2")
 
         with st.expander("Ver/Ocultar Palabras de Competidores", expanded=True):
             df_comp = st.session_state.df_comp_unique
-            if not df_comp.empty:
-                word_column_comp = df_comp.columns[0]
-                freq_column_comp = df_comp.columns[1] if len(df_comp.columns) > 1 else None
+            df_comp_filtered = df_comp[~df_comp[df_comp.columns[0]].isin(avoid_list)]
+            if filtro_comp and len(df_comp.columns) > 1:
+                freq_col_comp = df_comp.columns[1]
+                df_comp_filtered[freq_col_comp] = pd.to_numeric(df_comp_filtered[freq_col_comp], errors='coerce')
+                df_comp_filtered = df_comp_filtered[df_comp_filtered[freq_col_comp].notna() & (df_comp_filtered[freq_col_comp] > 2)]
 
-                df_comp_filtered = df_comp[~df_comp[word_column_comp].isin(avoid_list)]
+            if not df_comp_filtered.empty:
+                # Crear encabezados de tabla manualmente
+                header_cols = [0.5] + [1.5] + [1] * (len(df_comp_filtered.columns) - 1)
+                cols = st.columns(header_cols)
+                cols[0].write("**Sel.**")
+                for i, col_name in enumerate(df_comp_filtered.columns):
+                    cols[i+1].write(f"**{col_name}**")
 
-                if filtro_comp and freq_column_comp:
-                    df_comp_filtered[freq_column_comp] = pd.to_numeric(df_comp_filtered[freq_column_comp], errors='coerce')
-                    df_comp_filtered = df_comp_filtered[df_comp_filtered[freq_column_comp].notna() & (df_comp_filtered[freq_column_comp] > 2)]
-                
-                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
-                st.dataframe(df_comp_filtered.reset_index(drop=True).style.set_properties(**{
-                    "white-space": "normal", "word-wrap": "break-word"
-                }))
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.divider()
+
+                # Iterar para mostrar cada fila con un checkbox
+                for index, row in df_comp_filtered.iterrows():
+                    cols = st.columns(header_cols)
+                    cols[0].checkbox("", key=f"comp_cb_{index}")
+                    for i, col_name in enumerate(df_comp_filtered.columns):
+                        cols[i+1].write(row[col_name])
             else:
                 st.write("No hay datos de palabras únicas de competidores para mostrar.")
+        
+        # ---- FIN DE CAMBIO RADICAL ----
