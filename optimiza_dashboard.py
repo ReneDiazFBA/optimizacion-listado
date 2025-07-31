@@ -118,14 +118,8 @@ if archivo:
     st.subheader("Agregar nuevas palabras a Avoids")
     nueva_palabra = st.text_input("Escribe una palabra nueva:")
     categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
-    st.session_state:
-            st.session_state["nuevas_avoids"] = []
-        st.session_state["nuevas_avoids"].append((nueva_palabra.strip(), categoria))
-
-    if "nuevas_avoids" in st.session_state and st.session_state["nuevas_avoids"]:
-        st.markdown("### Palabras nuevas seleccionadas:")
-        df_nuevas = pd.DataFrame(st.session_state["nuevas_avoids"], columns=["Palabra", "Categoría"])
-        st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+    if "nuevas_avoids" in        st.markdown("### Palabras nuevas seleccionadas:")
+        df_nuevas = pd.DataFrame(        st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
         st.dataframe(df_nuevas.style.set_properties(**{
             "white-space": "normal", "word-wrap": "break-word"
         }))
