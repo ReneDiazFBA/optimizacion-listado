@@ -21,6 +21,18 @@ def inicializar_datos(archivo_subido):
         st.error(f"No se pudo leer el archivo: {e}")
         st.session_state.datos_cargados = False
 
+def anadir_palabra_a_avoids(palabra, categoria):
+    """Función para añadir una palabra a la categoría correcta en el dataframe de Avoids."""
+    avoids_df = st.session_state.avoids_df
+    last_idx = avoids_df[categoria].last_valid_index()
+    target_idx = 0 if last_idx is None else last_idx + 1
+
+    if target_idx >= len(avoids_df):
+        new_row = pd.DataFrame([[pd.NA] * len(avoids_df.columns)], columns=avoids_df.columns)
+        st.session_state.avoids_df = pd.concat([avoids_df, new_row], ignore_index=True)
+
+    st.session_state.avoids_df.loc[target_idx, categoria] = palabra
+
 def mostrar_dashboard():
     """Muestra la interfaz principal de la aplicación."""
     st.title("Optimización de Listado - Dashboard")
@@ -94,18 +106,9 @@ def mostrar_dashboard():
             submitted = st.form_submit_button("Agregar a Avoids")
 
             if submitted and nueva_palabra:
-                avoids_df = st.session_state.avoids_df
-                last_idx = avoids_df[categoria_seleccionada].last_valid_index()
-                target_idx = 0 if last_idx is None else last_idx + 1
-
-                if target_idx >= len(avoids_df):
-                    new_row = pd.DataFrame([[pd.NA] * len(avoids_df.columns)], columns=avoids_df.columns)
-                    st.session_state.avoids_df = pd.concat([avoids_df, new_row], ignore_index=True)
-
-                st.session_state.avoids_df.loc[target_idx, categoria_seleccionada] = nueva_palabra
+                anadir_palabra_a_avoids(nueva_palabra, categoria_seleccionada)
                 st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria_seleccionada}'.")
-                st.rerun() # --- CORRECCIÓN ---
-
+                st.rerun() 
 
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
@@ -132,7 +135,7 @@ def mostrar_dashboard():
             df_cust_filtered = df_cust[~df_cust[df_cust.columns[0]].isin(avoid_list)]
             if filtro_cust and len(df_cust.columns) > 1:
                 freq_col_cust = df_cust.columns[1]
-                df_cust_filtered[freq_col_cust] = pd.to_numeric(df_cust_filtered[freq_col_cust], errors='coerce')
+                df_cust_filtered.loc[:, freq_col_cust] = pd.to_numeric(df_cust_filtered[freq_col_cust], errors='coerce')
                 df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_col_cust].notna() & (df_cust_filtered[freq_col_cust] > 2)]
 
             if not df_cust_filtered.empty:
@@ -141,7 +144,6 @@ def mostrar_dashboard():
                 header_cols[0].write("**Sel.**")
                 for i, col_name in enumerate(df_cust_filtered.columns):
                     header_cols[i+1].write(f"**{col_name}**")
-                
                 st.divider()
 
                 for index, row in df_cust_filtered.iterrows():
@@ -161,7 +163,7 @@ def mostrar_dashboard():
                     if palabras_a_anadir:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir
                         st.session_state.vista_actual = 'categorizar'
-                        st.rerun() # --- CORRECCIÓN ---
+                        st.rerun() 
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
             else:
@@ -176,7 +178,7 @@ def mostrar_dashboard():
             df_comp_filtered = df_comp[~df_comp[df_comp.columns[0]].isin(avoid_list)]
             if filtro_comp and len(df_comp.columns) > 1:
                 freq_col_comp = df_comp.columns[1]
-                df_comp_filtered[freq_col_comp] = pd.to_numeric(df_comp_filtered[freq_col_comp], errors='coerce')
+                df_comp_filtered.loc[:, freq_col_comp] = pd.to_numeric(df_comp_filtered[freq_col_comp], errors='coerce')
                 df_comp_filtered = df_comp_filtered[df_comp_filtered[freq_col_comp].notna() & (df_comp_filtered[freq_col_comp] > 2)]
 
             if not df_comp_filtered.empty:
@@ -185,7 +187,6 @@ def mostrar_dashboard():
                 header_cols_comp[0].write("**Sel.**")
                 for i, col_name in enumerate(df_comp_filtered.columns):
                     header_cols_comp[i+1].write(f"**{col_name}**")
-
                 st.divider()
 
                 for index, row in df_comp_filtered.iterrows():
@@ -205,7 +206,7 @@ def mostrar_dashboard():
                     if palabras_a_anadir_comp:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir_comp
                         st.session_state.vista_actual = 'categorizar'
-                        st.rerun() # --- CORRECCIÓN ---
+                        st.rerun() 
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
             else:
@@ -220,18 +221,32 @@ def mostrar_pagina_categorizacion():
     if not palabras:
         st.warning("No hay palabras para categorizar. Volviendo al dashboard...")
         st.session_state.vista_actual = 'dashboard'
-        st.rerun() # --- CORRECCIÓN ---
+        st.rerun()
         return
 
-    st.write(f"Palabras seleccionadas: **{', '.join(palabras)}**")
-    
-    # Placeholder para la siguiente funcionalidad
-    st.info("El siguiente paso será agregar los menús desplegables y el botón de confirmación aquí.")
+    avoid_column_names = st.session_state.avoids_df.columns.tolist()
+
+    with st.form("form_categorizacion"):
+        for palabra in palabras:
+            cols = st.columns([2, 3])
+            cols[0].write(f"**{palabra}**")
+            cols[1].selectbox("Categoría", avoid_column_names, key=f"cat_{palabra}")
+        
+        submitted = st.form_submit_button("Confirmar y Añadir Palabras")
+        if submitted:
+            for palabra in palabras:
+                categoria = st.session_state[f"cat_{palabra}"]
+                anadir_palabra_a_avoids(palabra, categoria)
+            
+            st.success("¡Palabras añadidas a la lista de exclusión correctamente!")
+            st.session_state.vista_actual = 'dashboard'
+            del st.session_state.palabras_para_categorizar
+            st.rerun()
 
     if st.button("Cancelar y Volver"):
         st.session_state.vista_actual = 'dashboard'
         del st.session_state.palabras_para_categorizar
-        st.rerun() # --- CORRECCIÓN ---
+        st.rerun() 
 
 # --- Lógica Principal de la App ---
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
