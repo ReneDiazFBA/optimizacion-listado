@@ -45,14 +45,23 @@ if archivo:
         seleccion = st.selectbox("Filtrar por porcentaje de clics (Click Share):", list(opciones.keys()))
         umbral = opciones[seleccion]
 
-        # Ya están como decimales reales
         df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"], errors="coerce")
-        filtrado = df_kw[df_kw["Click Share"] > umbral]
+        df_kw_filtrado = df_kw[df_kw["Click Share"] > umbral].copy()
+
+        # Formato visual para mostrar porcentaje
+        df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
 
         columnas_a_mostrar = {
             "Keyword": "Palabra clave",
-            "Estimated Weekly Impressions": "Impresiones mensuales",
+            "M. Searches": "Impresiones mensuales",
             "Click Share": "Porcentaje de clics"
         }
 
-        st.dataframe(filtrado[list(columnas_a_mostrar.keys())].rename(columns=columnas_a_mostrar))
+        df_visual = df_kw_filtrado[list(columnas_a_mostrar.keys())].rename(columns=columnas_a_mostrar)
+
+        st.dataframe(df_visual.style.set_properties(**{
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+            "overflow": "hidden",
+            "max-width": "300px"
+        }))
