@@ -9,14 +9,14 @@ archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
 if archivo:
     try:
-    df_asin = pd.read_excel(archivo, sheet_name="CustListing")
-    df_kw = pd.read_excel(archivo, sheet_name="CustKW")
-    df_comp = pd.read_excel(archivo, sheet_name="CompKW", header=None)
-    df_comp_data = pd.read_excel(archivo, sheet_name="CompKW", skiprows=2)
-    avoids = pd.read_excel(archivo, sheet_name="Avoids", header=None)
-    avoids.columns = ["Stopword", "Marca", "Irrelevante"]
-    df_cust_unique = pd.read_excel(archivo, sheet_name="CustUnique")
-    df_comp_unique = pd.read_excel(archivo, sheet_name="CompUnique")
+        df_asin = pd.read_excel(archivo, sheet_name="CustListing")
+        df_kw = pd.read_excel(archivo, sheet_name="CustKW")
+        df_comp = pd.read_excel(archivo, sheet_name="CompKW", header=None)
+        df_comp_data = pd.read_excel(archivo, sheet_name="CompKW", skiprows=2)
+        avoids = pd.read_excel(archivo, sheet_name="Avoids", header=None)
+        avoids.columns = ["Stopword", "Marca", "Irrelevante"]
+        df_cust_unique = pd.read_excel(archivo, sheet_name="CustUnique")
+        df_comp_unique = pd.read_excel(archivo, sheet_name="CompUnique")
     except Exception as e:
         st.error(f"No se pudo leer el archivo: {e}")
         st.stop()
