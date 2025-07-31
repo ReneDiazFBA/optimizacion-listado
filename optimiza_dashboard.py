@@ -13,12 +13,9 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
 
-        # Lee la primera fila de la pestaña 'Avoids' como el encabezado.
-        avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
-        st.session_state.avoids_df = avoids_df
-
-        # ---- INICIO DE LA CORRECCIÓN ----
-        # Se especifica que el encabezado está en la PRIMERA fila del Excel (índice 0).
+        # ---- LÓGICA UNIFICADA Y FINAL ----
+        # Se establece que para TODAS las pestañas de datos, la primera fila (índice 0) es el encabezado.
+        st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
         # ---- FIN DE LA CORRECCIÓN ----
