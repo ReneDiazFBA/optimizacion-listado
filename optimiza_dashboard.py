@@ -161,16 +161,17 @@ if st.session_state.get('datos_cargados', False):
             asin_raw = str(st.session_state.df_comp.iloc[0, 0])
             
             # --- INICIO DE LA CORRECCIÓN ---
-            if "US-" in asin_raw:
-                # 1. Quitar el prefijo
-                clean_string = asin_raw.split("US-", 1)[1]
-                # 2. Quitar el sufijo
-                clean_string = clean_string.replace("-Last-30-days", "")
-                # 3. Separar por comas
-                asin_list = [a.strip() for a in clean_string.split(',') if a.strip()]
+            # Nueva lógica de limpieza más robusta
+            start_index = asin_raw.find('B0')
+            if start_index != -1:
+                clean_string = asin_raw[start_index:]
             else:
-                # Si el formato no es el esperado, intentar separar por comas
-                asin_list = [a.strip() for a in asin_raw.split(',') if a.strip()]
+                clean_string = asin_raw # Si no encuentra 'B0', usa el string original
+
+            if clean_string.endswith('-Last-30-days'):
+                clean_string = clean_string.replace('-Last-30-days', '')
+            
+            asin_list = [a.strip() for a in clean_string.split(',') if a.strip()]
             # --- FIN DE LA CORRECCIÓN ---
 
             df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
