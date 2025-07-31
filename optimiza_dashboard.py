@@ -17,11 +17,9 @@ def inicializar_datos(archivo_subido):
         avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.avoids_df = avoids_df
 
-        # ---- INICIO DE LA CORRECCIÓN ----
-        # Se especifica que el encabezado está en la segunda fila del Excel (índice 1).
+        # Especifica que el encabezado está en la segunda fila del Excel (índice 1).
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=1)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=1)
-        # ---- FIN DE LA CORRECCIÓN ----
 
         st.session_state.datos_cargados = True
     except Exception as e:
