@@ -150,16 +150,34 @@ if st.session_state.get('datos_cargados', False):
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
             col1, col2, col3 = st.columns(3)
-            avoids_display = st.session_state.avoids_df
-            avoid_column_names = st.session_state.avoids_df.columns.tolist()
-            col1_name, col2_name, col3_name = avoid_column_names[0], avoid_column_names[1], avoid_column_names[2]
+            avoids_df = st.session_state.avoids_df
+            avoid_column_names = avoids_df.columns.tolist()
+            
+            # --- INICIO DE NUEVA LÓGICA DE VISUALIZACIÓN Y ELIMINACIÓN ---
+            col_map = {col1: avoid_column_names[0], col2: avoid_column_names[1], col3: avoid_column_names[2]}
 
-            with col1:
-                st.dataframe(avoids_display[col1_name].dropna().reset_index(drop=True), use_container_width=True)
-            with col2:
-                st.dataframe(avoids_display[col2_name].dropna().reset_index(drop=True), use_container_width=True)
-            with col3:
-                st.dataframe(avoids_display[col3_name].dropna().reset_index(drop=True), use_container_width=True)
+            for col_widget, col_name in col_map.items():
+                with col_widget:
+                    st.markdown(f"**{col_name}**")
+                    for index, word in avoids_df[col_name].dropna().items():
+                        st.checkbox(label=str(word), key=f"del_avoid_{col_name}_{index}")
+            
+            st.divider()
+            if st.button("Eliminar seleccionados de la lista", key="delete_avoids"):
+                palabras_eliminadas = False
+                for col_name in avoid_column_names:
+                    # Iterar sobre una copia para poder modificar el original
+                    for index, word in avoids_df[col_name].dropna().items():
+                        if st.session_state.get(f"del_avoid_{col_name}_{index}"):
+                            st.session_state.avoids_df.loc[index, col_name] = pd.NA
+                            palabras_eliminadas = True
+                
+                if palabras_eliminadas:
+                    st.success("Palabras eliminadas correctamente.")
+                    st.rerun()
+                else:
+                    st.warning("No has seleccionado ninguna palabra para eliminar.")
+            # --- FIN DE NUEVA LÓGICA ---
 
         avoid_list = pd.concat([st.session_state.avoids_df[col] for col in avoid_column_names]).dropna().unique().tolist()
         st.divider()
