@@ -45,11 +45,13 @@ if archivo:
         seleccion = st.selectbox("Filtrar por porcentaje de clics (Click Share):", list(opciones.keys()))
         umbral = opciones[seleccion]
 
+        # Forzar conversión y filtrar sin errores
         df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"], errors="coerce")
-        df_kw_filtrado = df_kw[df_kw["Click Share"] > umbral].copy()
+        df_kw_filtrado = df_kw[df_kw["Click Share"].fillna(0) > umbral].copy()
 
-        # Formato visual para mostrar porcentaje
+        # Formatos finales
         df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
+        df_kw_filtrado["M. Searches"] = pd.to_numeric(df_kw_filtrado["M. Searches"], errors="coerce").fillna(0).astype(int)
 
         columnas_a_mostrar = {
             "Keyword": "Palabra clave",
