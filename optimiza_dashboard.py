@@ -116,7 +116,6 @@ if st.session_state.get('datos_cargados', False):
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         
-        # --- INICIO DE LA CORRECCIÓN ---
         st.subheader("Listado de ASINs")
         for _, row in st.session_state.df_asin.iterrows():
             asin = row.get("ASIN", "")
@@ -153,7 +152,6 @@ if st.session_state.get('datos_cargados', False):
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
-        # --- FIN DE LA CORRECCIÓN ---
 
 
     # DATOS DE COMPETIDORES
@@ -161,13 +159,25 @@ if st.session_state.get('datos_cargados', False):
         st.subheader("ASIN de competidores")
         with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
             asin_raw = str(st.session_state.df_comp.iloc[0, 0])
-            if "ExpandKeywords" in asin_raw:
-                cuerpo = asin_raw.replace("ExpandKeywords(439)-US-", "").split("-Last-30-days")[0]
-                asin_list = [a.strip() for a in cuerpo.split(",") if a.strip()]
-                df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
-                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
-                st.dataframe(df_asin_comp.style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
-                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # --- INICIO DE LA CORRECCIÓN ---
+            if "US-" in asin_raw:
+                # 1. Quitar el prefijo
+                clean_string = asin_raw.split("US-", 1)[1]
+                # 2. Quitar el sufijo
+                clean_string = clean_string.replace("-Last-30-days", "")
+                # 3. Separar por comas
+                asin_list = [a.strip() for a in clean_string.split(',') if a.strip()]
+            else:
+                # Si el formato no es el esperado, intentar separar por comas
+                asin_list = [a.strip() for a in asin_raw.split(',') if a.strip()]
+            # --- FIN DE LA CORRECCIÓN ---
+
+            df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
+            st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            st.dataframe(df_asin_comp.style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
+            st.markdown("</div>", unsafe_allow_html=True)
+
         st.subheader("Keywords por ranking de competidor")
         rango = st.selectbox("Mostrar keywords con ranking mayor a:", [4, 5, 6], index=1)
         df_comp_data_copy = st.session_state.df_comp_data.copy()
