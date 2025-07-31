@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from collections import Counter
 
-# Lista simple de stopwords en inglés
+# Lista simple de stopwords en inglés para filtrar
 stop_words = {
     "the", "for", "and", "with", "are", "but", "from", "was", "that", "this", "these", "those", "there", "their",
     "have", "has", "had", "not", "will", "would", "can", "could", "should", "shall", "may", "might", "to", "in",
@@ -15,7 +15,7 @@ def procesar_keywords(df, stoplist):
     words = []
     for phrase in df.iloc[:, 0].dropna():
         for word in str(phrase).lower().split():
-            clean = word.strip(".,:;!?()[]{}"'")
+            clean = word.strip(".,:;!?()[]{}\"'")
             if clean and clean not in stoplist:
                 words.append(clean)
     conteo = pd.DataFrame(Counter(words).items(), columns=["Palabra", "Frecuencia"])
