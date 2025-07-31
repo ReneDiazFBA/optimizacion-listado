@@ -13,7 +13,8 @@ if archivo:
         df_kw = pd.read_excel(archivo, sheet_name="CustKW")
         df_comp = pd.read_excel(archivo, sheet_name="CompKW", header=None)
         df_comp_data = pd.read_excel(archivo, sheet_name="CompKW", skiprows=2)
-        avoids = pd.read_excel(archivo, sheet_name="Avoids")
+        avoids = pd.read_excel(archivo, sheet_name="Avoids", header=None)
+avoids.columns = ["Stopword", "Marca", "Irrelevante"]
         df_cust_unique = pd.read_excel(archivo, sheet_name="CustUnique")
         df_comp_unique = pd.read_excel(archivo, sheet_name="CompUnique")
     except Exception as e:
