@@ -84,8 +84,8 @@ if archivo:
 
     # NUEVAS PALABRAS
     st.subheader("Agregar nuevas palabras a Avoids")
-    nueva_palabra = st.text_input("Escribe una palabra nueva:")
-    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
+    nueva_palabra = st.text_input("Escribe una palabra nueva:", key="nueva_palabra_input")
+    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"], key="categoria_select")
 
     if st.button("Agregar a Avoids") and nueva_palabra:
         col_map = {"Stopword": 0, "Marca": 1, "Irrelevante": 2}
@@ -134,8 +134,8 @@ if archivo:
 
     # NUEVAS PALABRAS
     st.subheader("Agregar nuevas palabras a Avoids")
-    nueva_palabra = st.text_input("Escribe una palabra nueva:")
-    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
+    nueva_palabra = st.text_input("Escribe una palabra nueva:", key="nueva_palabra_input")
+    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"], key="categoria_select")
 
     if st.button("Agregar a Avoids") and nueva_palabra:
         col_map = {"Stopword": 0, "Marca": 1, "Irrelevante": 2}
