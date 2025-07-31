@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 
@@ -14,20 +13,22 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
         
-        # Carga 'avoids' y le asigna nombres a las columnas
         avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=None)
         avoids_df.columns = ["Stopword", "Marca", "Irrelevante"]
         st.session_state.avoids_df = avoids_df
 
-        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique")
-        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique")
+        # ---- INICIO DE LA CORRECCIÓN ----
+        # Se agrega "skiprows=1" para ignorar la primera fila de títulos
+        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", skiprows=1)
+        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", skiprows=1)
+        # ---- FIN DE LA CORRECCIÓN ----
+
         st.session_state.datos_cargados = True
     except Exception as e:
         st.error(f"No se pudo leer el archivo: {e}")
         st.session_state.datos_cargados = False
 
 # --- Interfaz de Usuario ---
-
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
 # Reinicia el estado si se sube un nuevo archivo
@@ -106,7 +107,7 @@ if st.session_state.get('datos_cargados', False):
         }))
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- SECCIÓN PARA AGREGAR Y MOSTRAR AVOIDS ---
+    # SECCIÓN PARA AGREGAR Y MOSTRAR AVOIDS
     st.subheader("Agregar nuevas palabras a Avoids")
     
     with st.form(key="avoid_form"):
@@ -141,7 +142,7 @@ if st.session_state.get('datos_cargados', False):
         st.markdown("**Irrelevantes**")
         st.dataframe(avoids_display["Irrelevante"].dropna().reset_index(drop=True), use_container_width=True)
 
-    # --- LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS ---
+    # LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS
     
     avoid_list = pd.concat([
         avoids_display["Stopword"], 
@@ -151,10 +152,21 @@ if st.session_state.get('datos_cargados', False):
 
     st.subheader("Palabras únicas del cliente (filtradas)")
     filtro_cust = st.checkbox("Ocultar frecuencia ≤ 2", value=True, key="fc")
+    
     df_cust = st.session_state.df_cust_unique.rename(columns=lambda c: c.strip().capitalize())
-    df_cust_filtered = df_cust[~df_cust['Word'].isin(avoid_list)]
-    if filtro_cust:
-        df_cust_filtered = df_cust_filtered[df_cust_filtered["Frequency"] > 2]
+    
+    if not df_cust.empty:
+        word_column_cust = df_cust.columns[0]
+        freq_column_cust = df_cust.columns[1] if len(df_cust.columns) > 1 else None
+
+        df_cust_filtered = df_cust[~df_cust[word_column_cust].isin(avoid_list)]
+        
+        if filtro_cust and freq_column_cust:
+            df_cust_filtered[freq_column_cust] = pd.to_numeric(df_cust_filtered[freq_column_cust], errors='coerce')
+            df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_column_cust] > 2]
+    else:
+        df_cust_filtered = df_cust
+        
     st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
     st.dataframe(df_cust_filtered.reset_index(drop=True).style.set_properties(**{
         "white-space": "normal", "word-wrap": "break-word"
@@ -163,10 +175,21 @@ if st.session_state.get('datos_cargados', False):
 
     st.subheader("Palabras únicas de competidores (filtradas)")
     filtro_comp = st.checkbox("Ocultar frecuencia ≤ 2 (competidores)", value=True, key="fc2")
+    
     df_comp = st.session_state.df_comp_unique.rename(columns=lambda c: c.strip().capitalize())
-    df_comp_filtered = df_comp[~df_comp['Word'].isin(avoid_list)]
-    if filtro_comp:
-        df_comp_filtered = df_comp_filtered[df_comp_filtered["Frequency"] > 2]
+    
+    if not df_comp.empty:
+        word_column_comp = df_comp.columns[0]
+        freq_column_comp = df_comp.columns[1] if len(df_comp.columns) > 1 else None
+        
+        df_comp_filtered = df_comp[~df_comp[word_column_comp].isin(avoid_list)]
+        
+        if filtro_comp and freq_column_comp:
+            df_comp_filtered[freq_column_comp] = pd.to_numeric(df_comp_filtered[freq_column_comp], errors='coerce')
+            df_comp_filtered = df_comp_filtered[df_comp_filtered[freq_column_comp] > 2]
+    else:
+        df_comp_filtered = df_comp
+        
     st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
     st.dataframe(df_comp_filtered.reset_index(drop=True).style.set_properties(**{
         "white-space": "normal", "word-wrap": "break-word"
