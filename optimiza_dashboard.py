@@ -81,14 +81,11 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    # ---- INICIO DE LA NUEVA LÓGICA DE VISUALIZACIÓN ----
     # El formulario de categorización se muestra arriba si está activado
     if st.session_state.get('show_categorization_form', False):
         mostrar_pagina_categorizacion()
         st.divider()
-    # ---- FIN DE LA NUEVA LÓGICA DE VISUALIZACIÓN ----
-
-
+    
     # El dashboard principal siempre se muestra debajo
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
@@ -151,22 +148,11 @@ if st.session_state.get('datos_cargados', False):
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
         
-        st.subheader("Agregar nuevas palabras a Avoids")
-        avoid_column_names = st.session_state.avoids_df.columns.tolist()
-        with st.form(key="avoid_form"):
-            nueva_palabra = st.text_input("Escribe una palabra nueva:")
-            categoria_seleccionada = st.selectbox("Categoría", avoid_column_names)
-            submitted = st.form_submit_button("Agregar a Avoids")
-
-            if submitted and nueva_palabra:
-                anadir_palabra_a_avoids(nueva_palabra, categoria_seleccionada)
-                st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria_seleccionada}'.")
-                st.rerun() 
-
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
             col1, col2, col3 = st.columns(3)
             avoids_display = st.session_state.avoids_df
+            avoid_column_names = st.session_state.avoids_df.columns.tolist()
             col1_name, col2_name, col3_name = avoid_column_names[0], avoid_column_names[1], avoid_column_names[2]
 
             with col1:
@@ -197,7 +183,6 @@ if st.session_state.get('datos_cargados', False):
                 header_cols[0].write("**Sel.**")
                 for i, col_name in enumerate(df_cust_filtered.columns):
                     header_cols[i+1].write(f"**{col_name}**")
-                
                 st.divider()
 
                 for index, row in df_cust_filtered.iterrows():
@@ -241,7 +226,6 @@ if st.session_state.get('datos_cargados', False):
                 header_cols_comp[0].write("**Sel.**")
                 for i, col_name in enumerate(df_comp_filtered.columns):
                     header_cols_comp[i+1].write(f"**{col_name}**")
-
                 st.divider()
 
                 for index, row in df_comp_filtered.iterrows():
