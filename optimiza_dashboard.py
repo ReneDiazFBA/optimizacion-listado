@@ -62,7 +62,7 @@ if archivo:
             }
 
             df_visual = df_kw_filtrado[list(columnas_a_mostrar.keys())].rename(columns=columnas_a_mostrar)
-            st.dataframe(df_visual.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True
+st.dataframe(df_visual.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
 
     # --- DATOS DE COMPETIDORES ---
     with st.expander("Datos de competidores", expanded=False):
