@@ -5,20 +5,22 @@ import pandas as pd
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 st.title("Optimización de Listado - Dashboard")
 
-archivo = st.file_uploader("📤 Sube tu archivo Excel (.xlsx)", type=["xlsx"])
+archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
 if archivo:
     try:
         df_asin = pd.read_excel(archivo, sheet_name="CustListing")
         df_kw = pd.read_excel(archivo, sheet_name="CustKW")
+        df_comp = pd.read_excel(archivo, sheet_name="CompKW", header=None)
     except Exception as e:
         st.error(f"Error al leer el archivo: {e}")
         st.stop()
 
-    with st.expander("📦 Datos del cliente", expanded=True):
-        subtabs = st.radio("Selecciona una vista:", ["🧾 Listado de ASINs", "🔍 Palabras Clave (Keywords)"])
+    # --- DATOS DEL CLIENTE ---
+    with st.expander("Datos del cliente", expanded=True):
+        subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"])
 
-        if subtabs == "🧾 Listado de ASINs":
+        if subtabs == "Listado de ASINs":
             st.subheader("Listado de productos por ASIN")
             for _, row in df_asin.iterrows():
                 asin = row.get("ASIN", "")
@@ -37,13 +39,13 @@ if archivo:
                         st.markdown("**Descripción:**")
                         st.write(descripcion)
 
-        elif subtabs == "🔍 Palabras Clave (Keywords)":
+        elif subtabs == "Palabras Clave (Keywords)":
             st.subheader("Palabras clave del producto")
             opciones = {
                 "Mayor al 5%": 0.05,
                 "Mayor al 2.5%": 0.025
             }
-            seleccion = st.selectbox("Filtrar por porcentaje de clics (Click Share):", list(opciones.keys()))
+            seleccion = st.selectbox("Filtrar por porcentaje de clics:", list(opciones.keys()))
             umbral = opciones[seleccion]
 
             df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"], errors="coerce")
@@ -66,3 +68,12 @@ if archivo:
                 "overflow": "hidden",
                 "max-width": "300px"
             }))
+
+    # --- DATOS DE COMPETIDORES ---
+    with st.expander("Datos de competidores", expanded=True):
+        st.subheader("ASIN de competidores")
+        asin_raw = str(df_comp.iloc[0, 0])
+        asin_string = asin_raw.split("-")[-1] if "-" in asin_raw else asin_raw
+        asin_list = [a.strip() for a in asin_string.split(",") if a.strip()]
+        df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
+        st.dataframe(df_asin_comp)
