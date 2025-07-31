@@ -12,6 +12,7 @@ if archivo:
         df_asin = pd.read_excel(archivo, sheet_name="CustListing")
         df_kw = pd.read_excel(archivo, sheet_name="CustKW")
         df_comp = pd.read_excel(archivo, sheet_name="CompKW", header=None)
+        df_comp_data = pd.read_excel(archivo, sheet_name="CompKW", skiprows=1)
     except Exception as e:
         st.error(f"Error al leer el archivo: {e}")
         st.stop()
@@ -80,3 +81,11 @@ if archivo:
             st.dataframe(df_asin_comp)
         else:
             st.warning("No se encontraron ASINs válidos en la celda [0, 0] de la hoja 'CompKW'.")
+
+        st.subheader("Keywords por ranking de competidor")
+        rango = st.selectbox("Mostrar keywords con ranking mayor a:", [4, 5, 6], index=1)
+        cols = df_comp_data.iloc[:, [0, 5, 8, 18, 19]].copy()
+        cols.columns = ["Palabra clave", "Ranking ASIN", "Impresiones", "CTR", "CVR"]
+        cols = cols[pd.to_numeric(cols["Ranking ASIN"], errors="coerce") > rango]
+
+        st.dataframe(cols.reset_index(drop=True))
