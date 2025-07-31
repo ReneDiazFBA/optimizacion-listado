@@ -96,6 +96,8 @@ if archivo:
         cols["Impresiones"] = pd.to_numeric(cols["Impresiones"], errors="coerce")
         cols["CTR"] = pd.to_numeric(cols["CTR"], errors="coerce")
 
-        filtradas = cols[cols["Ranking ASIN"] > rango]
+        # Eliminar filas con valores faltantes
+        filtradas = cols.dropna(subset=["Ranking ASIN", "Impresiones", "CTR"])
+        filtradas = filtradas[filtradas["Ranking ASIN"] > rango]
 
         st.dataframe(filtradas.reset_index(drop=True))
