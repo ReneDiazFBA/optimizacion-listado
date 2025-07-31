@@ -118,6 +118,3 @@ if archivo:
     st.subheader("Agregar nuevas palabras a Avoids")
     nueva_palabra = st.text_input("Escribe una palabra nueva:")
     categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
-            "white-space": "normal", "word-wrap": "break-word"
-        }))
-        st.markdown("</div>", unsafe_allow_html=True)
