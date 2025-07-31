@@ -73,7 +73,10 @@ if archivo:
     with st.expander("Datos de competidores", expanded=True):
         st.subheader("ASIN de competidores")
         asin_raw = str(df_comp.iloc[0, 0])
-        asin_string = asin_raw.split("-")[-1] if "-" in asin_raw else asin_raw
-        asin_list = [a.strip() for a in asin_string.split(",") if a.strip()]
-        df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
-        st.dataframe(df_asin_comp)
+        if "ExpandKeywords" in asin_raw:
+            cuerpo = asin_raw.replace("ExpandKeywords(439)-US-", "").split("-Last-30-days")[0]
+            asin_list = [a.strip() for a in cuerpo.split(",") if a.strip()]
+            df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
+            st.dataframe(df_asin_comp)
+        else:
+            st.warning("No se encontraron ASINs válidos en la celda [0, 0] de la hoja 'CompKW'.")
