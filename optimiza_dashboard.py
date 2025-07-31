@@ -116,21 +116,37 @@ if st.session_state.get('datos_cargados', False):
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         
+        # --- INICIO DE LA CORRECCIÓN ---
         st.subheader("Listado de ASINs")
-        for _, row in st.session_state.df_asin.iterrows():
-            asin = row.get("ASIN", "")
-            titulo = row.get("Product Title", "")
-            bullets = row.get("Bullet Points", "")
-            descripcion = row.get("Description", "")
-            with st.expander(f"ASIN: {asin}"):
-                st.markdown("**Título del producto:**")
-                st.write(titulo)
-                st.markdown("**Puntos clave:**")
-                st.write(bullets)
-                if pd.notna(descripcion) and str(descripcion).strip():
+        for index, row in st.session_state.df_asin.iterrows():
+            try:
+                # Leer por posición de columna (A=0, B=1, etc.)
+                marketplace = row.iloc[0]
+                asin = row.iloc[1]
+                titulo = row.iloc[2]
+                bullets = row.iloc[3]
+                descripcion_raw = row.iloc[4]
+
+                # Lógica para la descripción vacía
+                if pd.isna(descripcion_raw) or str(descripcion_raw).strip() == "":
+                    descripcion = "Este ASIN tiene contenido A+"
+                else:
+                    descripcion = descripcion_raw
+
+                with st.expander(f"ASIN: {asin}"):
+                    st.markdown(f"**Marketplace:** {marketplace}")
+                    st.markdown("**Título del producto:**")
+                    st.write(titulo)
+                    st.markdown("**Puntos clave:**")
+                    st.write(bullets)
                     st.markdown("**Descripción:**")
                     st.write(descripcion)
-        
+            except IndexError:
+                # Si una fila no tiene suficientes columnas, la omite y avisa
+                st.warning(f"Se omitió la fila {index+1} de la pestaña 'CustListing' por no tener el formato esperado.")
+                continue
+        # --- FIN DE LA CORRECCIÓN ---
+
         st.divider()
 
         st.subheader("Palabras Clave (Keywords)")
@@ -153,15 +169,12 @@ if st.session_state.get('datos_cargados', False):
             st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
 
-
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
         st.subheader("ASIN de competidores")
         with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
             asin_raw = str(st.session_state.df_comp.iloc[0, 0])
             
-            # --- INICIO DE LA CORRECCIÓN ---
-            # Nueva lógica de limpieza más robusta
             start_index = asin_raw.find('B0')
             if start_index != -1:
                 clean_string_block = asin_raw[start_index:]
@@ -172,11 +185,9 @@ if st.session_state.get('datos_cargados', False):
             
             clean_asin_list = []
             for asin in dirty_asin_list:
-                # Usar el guion como 'stopper' y limpiar espacios
                 clean_asin = asin.split('-')[0].strip()
                 if clean_asin:
                     clean_asin_list.append(clean_asin)
-            # --- FIN DE LA CORRECCIÓN ---
 
             df_asin_comp = pd.DataFrame({"ASIN de competidor": clean_asin_list})
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
