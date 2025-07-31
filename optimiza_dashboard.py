@@ -132,6 +132,12 @@ if st.session_state.get('datos_cargados', False):
         cols = df_comp_data_copy.iloc[:, [0, 5, 8, 18]].copy()
         cols.columns = ["Palabra clave", "Ranking ASIN", "Impresiones", "CTR"]
         cols = cols.dropna()
+        
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Convertir la columna 'Impresiones' a números enteros
+        cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
+        # --- FIN DE LA CORRECCIÓN ---
+
         cols['Ranking ASIN'] = pd.to_numeric(cols['Ranking ASIN'], errors='coerce')
         cols = cols[cols["Ranking ASIN"].notna() & (cols["Ranking ASIN"] > rango)]
         with st.expander("Ver/Ocultar Keywords de Competidores por Ranking", expanded=True):
@@ -153,7 +159,6 @@ if st.session_state.get('datos_cargados', False):
             avoids_df = st.session_state.avoids_df
             avoid_column_names = avoids_df.columns.tolist()
             
-            # --- INICIO DE NUEVA LÓGICA DE VISUALIZACIÓN Y ELIMINACIÓN ---
             col_map = {col1: avoid_column_names[0], col2: avoid_column_names[1], col3: avoid_column_names[2]}
 
             for col_widget, col_name in col_map.items():
@@ -177,7 +182,6 @@ if st.session_state.get('datos_cargados', False):
                     st.rerun()
                 else:
                     st.warning("No has seleccionado ninguna palabra para eliminar.")
-            # --- FIN DE NUEVA LÓGICA ---
 
         avoid_list = pd.concat([st.session_state.avoids_df[col] for col in avoid_column_names]).dropna().unique().tolist()
         st.divider()
