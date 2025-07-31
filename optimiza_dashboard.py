@@ -39,13 +39,14 @@ if archivo:
     elif pestaña == "🔍 Palabras Clave (Keywords)":
         st.subheader("Palabras clave del producto")
         opciones = {
-            "Mayor al 5%": 5.0,
-            "Mayor al 2.5%": 2.5
+            "Mayor al 5%": 0.05,
+            "Mayor al 2.5%": 0.025
         }
         seleccion = st.selectbox("Filtrar por porcentaje de clics (Click Share):", list(opciones.keys()))
         umbral = opciones[seleccion]
 
-        df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"].astype(str).str.replace("%", ""), errors="coerce")
+        # Ya están como decimales reales
+        df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"], errors="coerce")
         filtrado = df_kw[df_kw["Click Share"] > umbral]
 
         columnas_a_mostrar = {
