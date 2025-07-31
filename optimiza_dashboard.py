@@ -1,31 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Prueba de Diagnóstico para Excel")
-st.write("Sube tu archivo para ver cómo lo lee el programa con dos configuraciones diferentes.")
-
-archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
-
-if archivo:
-    try:
-        st.divider()
-        # --- PRUEBA 1 ---
-        st.header("Prueba A: `header=0`")
-        st.write("""
-        Esta prueba asume que la **primera fila** de tu hoja `CustUnique` contiene los títulos 
-        ('Word', 'Frequency', etc.).
-        """)
-        df_test_A = pd.read_excel(archivo, sheet_name="CustUnique", header=0)
-        st.write("**Resultado de la Prueba A:**")
-        st.dataframe(df_test_A.head())
-
-        st.divider()
-
-        # --- PRUEBA 2 ---
-        st.header("Prueba B: `header=1`")
-       import streamlit as st
-import pandas as pd
-
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 st.title("Optimización de Listado - Dashboard")
 
@@ -38,12 +13,10 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
 
-        # ---- LÓGICA FINAL SEGÚN INSTRUCCIONES ----
-        # Se establece que para TODAS las pestañas, la primera fila (índice 0) es el encabezado.
+        # Lógica final: se establece que la primera fila (índice 0) es el encabezado.
         st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
-        # ---- FIN DE LA CORRECCIÓN ----
 
         st.session_state.datos_cargados = True
     except Exception as e:
