@@ -164,17 +164,21 @@ if st.session_state.get('datos_cargados', False):
             # Nueva lógica de limpieza más robusta
             start_index = asin_raw.find('B0')
             if start_index != -1:
-                clean_string = asin_raw[start_index:]
+                clean_string_block = asin_raw[start_index:]
             else:
-                clean_string = asin_raw # Si no encuentra 'B0', usa el string original
+                clean_string_block = asin_raw
 
-            if clean_string.endswith('-Last-30-days'):
-                clean_string = clean_string.replace('-Last-30-days', '')
+            dirty_asin_list = clean_string_block.split(',')
             
-            asin_list = [a.strip() for a in clean_string.split(',') if a.strip()]
+            clean_asin_list = []
+            for asin in dirty_asin_list:
+                # Usar el guion como 'stopper' y limpiar espacios
+                clean_asin = asin.split('-')[0].strip()
+                if clean_asin:
+                    clean_asin_list.append(clean_asin)
             # --- FIN DE LA CORRECCIÓN ---
 
-            df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
+            df_asin_comp = pd.DataFrame({"ASIN de competidor": clean_asin_list})
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(df_asin_comp.style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
