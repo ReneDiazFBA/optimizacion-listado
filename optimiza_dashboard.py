@@ -136,9 +136,10 @@ if st.session_state.get('datos_cargados', False):
         cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
         
         # --- INICIO DE LA CORRECCIÓN ---
-        # Convertir la columna 'CTR' a formato de porcentaje
+        # Convertir la columna 'CTR' a numérico
         cols['CTR'] = pd.to_numeric(cols['CTR'], errors='coerce').fillna(0)
-        cols['CTR'] = (cols['CTR'] * 100).round(2).astype(str) + '%'
+        # Redondear a 2 decimales y añadir '%' SIN multiplicar por 100
+        cols['CTR'] = cols['CTR'].round(2).astype(str) + '%'
         # --- FIN DE LA CORRECCIÓN ---
 
         cols['Ranking ASIN'] = pd.to_numeric(cols['Ranking ASIN'], errors='coerce')
