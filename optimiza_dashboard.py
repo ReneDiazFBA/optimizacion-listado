@@ -17,9 +17,11 @@ def inicializar_datos(archivo_subido):
         avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.avoids_df = avoids_df
 
-        # Ignora la primera fila de títulos en estas pestañas.
-        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", skiprows=1)
-        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", skiprows=1)
+        # ---- INICIO DE LA CORRECCIÓN ----
+        # Se especifica que el encabezado está en la segunda fila del Excel (índice 1).
+        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=1)
+        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=1)
+        # ---- FIN DE LA CORRECCIÓN ----
 
         st.session_state.datos_cargados = True
     except Exception as e:
@@ -133,16 +135,12 @@ if st.session_state.get('datos_cargados', False):
     avoids_display = st.session_state.avoids_df
     col1_name, col2_name, col3_name = avoid_column_names[0], avoid_column_names[1], avoid_column_names[2]
 
-    # ---- INICIO DE LA CORRECCIÓN ----
-    # Se eliminaron los st.markdown() que creaban títulos duplicados.
-    # El nombre de la columna ahora solo aparece en el encabezado de la tabla.
     with col1:
         st.dataframe(avoids_display[col1_name].dropna().reset_index(drop=True), use_container_width=True)
     with col2:
         st.dataframe(avoids_display[col2_name].dropna().reset_index(drop=True), use_container_width=True)
     with col3:
         st.dataframe(avoids_display[col3_name].dropna().reset_index(drop=True), use_container_width=True)
-    # ---- FIN DE LA CORRECCIÓN ----
 
 
     # LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS
