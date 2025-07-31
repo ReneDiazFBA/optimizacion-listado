@@ -118,8 +118,7 @@ if archivo:
     st.subheader("Agregar nuevas palabras a Avoids")
     nueva_palabra = st.text_input("Escribe una palabra nueva:")
     categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
-    if st.button("Agregar a Avoids"):
-        if "nuevas_avoids" not in st.session_state:
+    st.session_state:
             st.session_state["nuevas_avoids"] = []
         st.session_state["nuevas_avoids"].append((nueva_palabra.strip(), categoria))
 
