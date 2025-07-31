@@ -62,7 +62,7 @@ if archivo:
             }
 
             df_visual = df_kw_filtrado[list(columnas_a_mostrar.keys())].rename(columns=columnas_a_mostrar)
-            st.dataframe(df_visual.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
+            st.dataframe(df_visual.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True
 
     # --- DATOS DE COMPETIDORES ---
     with st.expander("Datos de competidores", expanded=False):
@@ -72,7 +72,7 @@ if archivo:
             cuerpo = asin_raw.replace("ExpandKeywords(439)-US-", "").split("-Last-30-days")[0]
             asin_list = [a.strip() for a in cuerpo.split(",") if a.strip()]
             df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
-            st.dataframe(df_asin_comp.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
+            st.dataframe(df_asin_comp.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True
         else:
             st.warning("No se encontraron ASINs válidos en la celda [0, 0] de la hoja 'CompKW'.")
 
@@ -87,7 +87,7 @@ if archivo:
         cols["CTR"] = pd.to_numeric(cols["CTR"], errors="coerce")
         filtradas = cols.dropna(subset=["Ranking ASIN", "Impresiones", "CTR"])
         filtradas = filtradas[filtradas["Ranking ASIN"] > rango]
-        st.dataframe(filtradas.reset_index(drop=True).style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True))
+        st.dataframe(filtradas.reset_index(drop=True).style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True
 
     # --- AVOIDS Y PALABRAS ÚNICAS ---
     st.markdown("---")
@@ -128,4 +128,4 @@ if archivo:
     if "nuevas_avoids" in st.session_state and st.session_state["nuevas_avoids"]:
         st.markdown("### Palabras nuevas seleccionadas:")
         df_nuevas = pd.DataFrame(st.session_state["nuevas_avoids"], columns=["Palabra", "Categoría"])
-        st.dataframe(df_nuevas.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
+        st.dataframe(df_nuevas.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True
