@@ -115,45 +115,46 @@ if st.session_state.get('datos_cargados', False):
     
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
-        subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
         
         # --- INICIO DE LA CORRECCIÓN ---
-        # Se restauró el código dentro de este bloque 'if'
-        if subtabs == "Listado de ASINs":
-            for _, row in st.session_state.df_asin.iterrows():
-                asin = row.get("ASIN", "")
-                titulo = row.get("Product Title", "")
-                bullets = row.get("Bullet Points", "")
-                descripcion = row.get("Description", "")
-                with st.expander(f"ASIN: {asin}"):
-                    st.markdown("**Título del producto:**")
-                    st.write(titulo)
-                    st.markdown("**Puntos clave:**")
-                    st.write(bullets)
-                    if pd.notna(descripcion) and str(descripcion).strip():
-                        st.markdown("**Descripción:**")
-                        st.write(descripcion)
-        # --- FIN DE LA CORRECCIÓN ---
+        st.subheader("Listado de ASINs")
+        for _, row in st.session_state.df_asin.iterrows():
+            asin = row.get("ASIN", "")
+            titulo = row.get("Product Title", "")
+            bullets = row.get("Bullet Points", "")
+            descripcion = row.get("Description", "")
+            with st.expander(f"ASIN: {asin}"):
+                st.markdown("**Título del producto:**")
+                st.write(titulo)
+                st.markdown("**Puntos clave:**")
+                st.write(bullets)
+                if pd.notna(descripcion) and str(descripcion).strip():
+                    st.markdown("**Descripción:**")
+                    st.write(descripcion)
         
-        elif subtabs == "Palabras Clave (Keywords)":
-            opciones = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
-            seleccion = st.selectbox("Filtrar por porcentaje de clics:", list(opciones.keys()))
-            umbral = opciones[seleccion]
-            
-            df_kw_copy = st.session_state.df_kw.iloc[:, [0, 1, 15]].copy()
-            df_kw_copy.columns = ["Keyword", "Click Share", "M. Searches"]
+        st.divider()
 
-            df_kw_copy["Click Share"] = pd.to_numeric(df_kw_copy["Click Share"], errors="coerce")
-            df_kw_filtrado = df_kw_copy[df_kw_copy["Click Share"].fillna(0) > umbral]
-            df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
-            df_kw_filtrado["M. Searches"] = pd.to_numeric(df_kw_filtrado["M. Searches"], errors="coerce").fillna(0).astype(int)
-            
-            columnas_a_mostrar = ["Keyword", "M. Searches", "Click Share"]
-            
-            with st.expander("Ver/Ocultar Keywords del Cliente", expanded=True):
-                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
-                st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
-                st.markdown("</div>", unsafe_allow_html=True)
+        st.subheader("Palabras Clave (Keywords)")
+        opciones = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
+        seleccion = st.selectbox("Filtrar por porcentaje de clics:", list(opciones.keys()))
+        umbral = opciones[seleccion]
+        
+        df_kw_copy = st.session_state.df_kw.iloc[:, [0, 1, 15]].copy()
+        df_kw_copy.columns = ["Keyword", "Click Share", "M. Searches"]
+
+        df_kw_copy["Click Share"] = pd.to_numeric(df_kw_copy["Click Share"], errors="coerce")
+        df_kw_filtrado = df_kw_copy[df_kw_copy["Click Share"].fillna(0) > umbral]
+        df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
+        df_kw_filtrado["M. Searches"] = pd.to_numeric(df_kw_filtrado["M. Searches"], errors="coerce").fillna(0).astype(int)
+        
+        columnas_a_mostrar = ["Keyword", "M. Searches", "Click Share"]
+        
+        with st.expander("Ver/Ocultar Keywords del Cliente", expanded=True):
+            st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
+            st.markdown("</div>", unsafe_allow_html=True)
+        # --- FIN DE LA CORRECCIÓN ---
+
 
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
