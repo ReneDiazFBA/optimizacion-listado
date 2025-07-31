@@ -82,7 +82,24 @@ if archivo:
         }))
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # LISTA AVOIDS
+    # NUEVAS PALABRAS
+    st.subheader("Agregar nuevas palabras a Avoids")
+    nueva_palabra = st.text_input("Escribe una palabra nueva:")
+    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
+
+    if st.button("Agregar a Avoids") and nueva_palabra:
+        col_map = {"Stopword": 0, "Marca": 1, "Irrelevante": 2}
+        col_idx = col_map.get(categoria)
+        if col_idx is not None:
+            for i in range(len(avoids)):
+                if pd.isna(avoids.iat[i, col_idx]):
+                    avoids.iat[i, col_idx] = nueva_palabra
+                    break
+            else:
+                nueva_fila = [None, None, None]
+                nueva_fila[col_idx] = nueva_palabra
+                avoids.loc[len(avoids)] = nueva_fila
+
     st.subheader("Palabras en lista de exclusión ('Avoids')")
     col1, col2, col3 = st.columns(3)
     col1.markdown("**Stopwords**")
