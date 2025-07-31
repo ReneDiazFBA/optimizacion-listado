@@ -16,7 +16,6 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
         st.session_state.datos_cargados = True
-        st.session_state.vista_actual = 'dashboard' # Vista inicial
     except Exception as e:
         st.error(f"No se pudo leer el archivo: {e}")
         st.session_state.datos_cargados = False
@@ -33,10 +32,64 @@ def anadir_palabra_a_avoids(palabra, categoria):
 
     st.session_state.avoids_df.loc[target_idx, categoria] = palabra
 
-def mostrar_dashboard():
-    """Muestra la interfaz principal de la aplicación."""
-    st.title("Optimización de Listado - Dashboard")
+def mostrar_pagina_categorizacion():
+    """Muestra la interfaz para categorizar las palabras seleccionadas."""
+    with st.container(border=True):
+        st.subheader("Categorizar Palabras para Añadir a Avoids")
+        st.write("Has seleccionado las siguientes palabras. Ahora, por favor, asigna una categoría a cada una.")
+        
+        palabras = st.session_state.get('palabras_para_categorizar', [])
+        
+        if not palabras:
+            st.session_state.show_categorization_form = False
+            st.rerun()
+            return
+
+        avoid_column_names = st.session_state.avoids_df.columns.tolist()
+
+        with st.form("form_categorizacion"):
+            for palabra in palabras:
+                cols = st.columns([2, 3])
+                cols[0].write(f"**{palabra}**")
+                cols[1].selectbox("Categoría", avoid_column_names, key=f"cat_{palabra}", label_visibility="collapsed")
+            
+            submitted = st.form_submit_button("Confirmar y Añadir Palabras")
+            if submitted:
+                for palabra in palabras:
+                    categoria = st.session_state[f"cat_{palabra}"]
+                    anadir_palabra_a_avoids(palabra, categoria)
+                
+                st.success("¡Palabras añadidas a la lista de exclusión correctamente!")
+                st.session_state.show_categorization_form = False
+                del st.session_state.palabras_para_categorizar
+                st.rerun()
+
+        if st.button("Cancelar"):
+            st.session_state.show_categorization_form = False
+            del st.session_state.palabras_para_categorizar
+            st.rerun()
+
+# --- Lógica Principal de la App ---
+st.title("Optimización de Listado - Dashboard")
+archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
+
+if archivo:
+    if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
+        st.session_state.clear()
+        st.session_state.last_uploaded_file = archivo.name
+        inicializar_datos(archivo)
+
+if st.session_state.get('datos_cargados', False):
     
+    # ---- INICIO DE LA NUEVA LÓGICA DE VISUALIZACIÓN ----
+    # El formulario de categorización se muestra arriba si está activado
+    if st.session_state.get('show_categorization_form', False):
+        mostrar_pagina_categorizacion()
+        st.divider()
+    # ---- FIN DE LA NUEVA LÓGICA DE VISUALIZACIÓN ----
+
+
+    # El dashboard principal siempre se muestra debajo
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
@@ -144,6 +197,7 @@ def mostrar_dashboard():
                 header_cols[0].write("**Sel.**")
                 for i, col_name in enumerate(df_cust_filtered.columns):
                     header_cols[i+1].write(f"**{col_name}**")
+                
                 st.divider()
 
                 for index, row in df_cust_filtered.iterrows():
@@ -162,7 +216,7 @@ def mostrar_dashboard():
                     
                     if palabras_a_anadir:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir
-                        st.session_state.vista_actual = 'categorizar'
+                        st.session_state.show_categorization_form = True
                         st.rerun() 
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
@@ -187,6 +241,7 @@ def mostrar_dashboard():
                 header_cols_comp[0].write("**Sel.**")
                 for i, col_name in enumerate(df_comp_filtered.columns):
                     header_cols_comp[i+1].write(f"**{col_name}**")
+
                 st.divider()
 
                 for index, row in df_comp_filtered.iterrows():
@@ -205,60 +260,9 @@ def mostrar_dashboard():
                             
                     if palabras_a_anadir_comp:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir_comp
-                        st.session_state.vista_actual = 'categorizar'
+                        st.session_state.show_categorization_form = True
                         st.rerun() 
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
             else:
                 st.write("No hay datos de palabras únicas de competidores para mostrar.")
-
-def mostrar_pagina_categorizacion():
-    """Muestra la interfaz para categorizar las palabras seleccionadas."""
-    st.title("Categorizar Palabras para Añadir a Avoids")
-    st.write("Has seleccionado las siguientes palabras. Ahora, por favor, asigna una categoría a cada una.")
-    
-    palabras = st.session_state.get('palabras_para_categorizar', [])
-    if not palabras:
-        st.warning("No hay palabras para categorizar. Volviendo al dashboard...")
-        st.session_state.vista_actual = 'dashboard'
-        st.rerun()
-        return
-
-    avoid_column_names = st.session_state.avoids_df.columns.tolist()
-
-    with st.form("form_categorizacion"):
-        for palabra in palabras:
-            cols = st.columns([2, 3])
-            cols[0].write(f"**{palabra}**")
-            cols[1].selectbox("Categoría", avoid_column_names, key=f"cat_{palabra}")
-        
-        submitted = st.form_submit_button("Confirmar y Añadir Palabras")
-        if submitted:
-            for palabra in palabras:
-                categoria = st.session_state[f"cat_{palabra}"]
-                anadir_palabra_a_avoids(palabra, categoria)
-            
-            st.success("¡Palabras añadidas a la lista de exclusión correctamente!")
-            st.session_state.vista_actual = 'dashboard'
-            del st.session_state.palabras_para_categorizar
-            st.rerun()
-
-    if st.button("Cancelar y Volver"):
-        st.session_state.vista_actual = 'dashboard'
-        del st.session_state.palabras_para_categorizar
-        st.rerun() 
-
-# --- Lógica Principal de la App ---
-archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
-
-if archivo:
-    if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
-        st.session_state.clear()
-        st.session_state.last_uploaded_file = archivo.name
-        inicializar_datos(archivo)
-
-if st.session_state.get('datos_cargados', False):
-    if st.session_state.get('vista_actual', 'dashboard') == 'dashboard':
-        mostrar_dashboard()
-    else:
-        mostrar_pagina_categorizacion()
