@@ -133,9 +133,12 @@ if st.session_state.get('datos_cargados', False):
         cols.columns = ["Palabra clave", "Ranking ASIN", "Impresiones", "CTR"]
         cols = cols.dropna()
         
-        # --- INICIO DE LA CORRECCIÓN ---
-        # Convertir la columna 'Impresiones' a números enteros
         cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
+        
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Convertir la columna 'CTR' a formato de porcentaje
+        cols['CTR'] = pd.to_numeric(cols['CTR'], errors='coerce').fillna(0)
+        cols['CTR'] = (cols['CTR'] * 100).round(2).astype(str) + '%'
         # --- FIN DE LA CORRECCIÓN ---
 
         cols['Ranking ASIN'] = pd.to_numeric(cols['Ranking ASIN'], errors='coerce')
@@ -148,7 +151,6 @@ if st.session_state.get('datos_cargados', False):
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
         
-        # El formulario de categorización se muestra aquí si está activado
         if st.session_state.get('show_categorization_form', False):
             mostrar_pagina_categorizacion()
             st.divider()
@@ -171,7 +173,6 @@ if st.session_state.get('datos_cargados', False):
             if st.button("Eliminar seleccionados de la lista", key="delete_avoids"):
                 palabras_eliminadas = False
                 for col_name in avoid_column_names:
-                    # Iterar sobre una copia para poder modificar el original
                     for index, word in avoids_df[col_name].dropna().items():
                         if st.session_state.get(f"del_avoid_{col_name}_{index}"):
                             st.session_state.avoids_df.loc[index, col_name] = pd.NA
