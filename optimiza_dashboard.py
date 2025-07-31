@@ -29,7 +29,6 @@ def mostrar_dashboard():
     with st.expander("Datos del cliente", expanded=False):
         subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
         if subtabs == "Listado de ASINs":
-            # (Código de esta sección sin cambios)
             for _, row in st.session_state.df_asin.iterrows():
                 asin = row.get("ASIN", "")
                 titulo = row.get("Product Title", "")
@@ -60,7 +59,6 @@ def mostrar_dashboard():
 
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
-        # (Código de esta sección sin cambios)
         st.subheader("ASIN de competidores")
         with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
             asin_raw = str(st.session_state.df_comp.iloc[0, 0])
@@ -86,7 +84,7 @@ def mostrar_dashboard():
             st.markdown("</div>", unsafe_allow_html=True)
 
     # SECCIÓN DE PALABRAS ÚNICAS
-    with st.expander("Palabras Únicas", expanded=True): # Lo dejo expandido por defecto
+    with st.expander("Palabras Únicas", expanded=True): 
         
         st.subheader("Agregar nuevas palabras a Avoids")
         avoid_column_names = st.session_state.avoids_df.columns.tolist()
@@ -106,7 +104,7 @@ def mostrar_dashboard():
 
                 st.session_state.avoids_df.loc[target_idx, categoria_seleccionada] = nueva_palabra
                 st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria_seleccionada}'.")
-                st.experimental_rerun()
+                st.rerun() # --- CORRECCIÓN ---
 
 
         st.subheader("Palabras en lista de exclusión ('Avoids')")
@@ -163,7 +161,7 @@ def mostrar_dashboard():
                     if palabras_a_anadir:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir
                         st.session_state.vista_actual = 'categorizar'
-                        st.experimental_rerun()
+                        st.rerun() # --- CORRECCIÓN ---
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
             else:
@@ -207,7 +205,7 @@ def mostrar_dashboard():
                     if palabras_a_anadir_comp:
                         st.session_state.palabras_para_categorizar = palabras_a_anadir_comp
                         st.session_state.vista_actual = 'categorizar'
-                        st.experimental_rerun()
+                        st.rerun() # --- CORRECCIÓN ---
                     else:
                         st.warning("No has seleccionado ninguna palabra.")
             else:
@@ -222,7 +220,7 @@ def mostrar_pagina_categorizacion():
     if not palabras:
         st.warning("No hay palabras para categorizar. Volviendo al dashboard...")
         st.session_state.vista_actual = 'dashboard'
-        st.experimental_rerun()
+        st.rerun() # --- CORRECCIÓN ---
         return
 
     st.write(f"Palabras seleccionadas: **{', '.join(palabras)}**")
@@ -233,7 +231,7 @@ def mostrar_pagina_categorizacion():
     if st.button("Cancelar y Volver"):
         st.session_state.vista_actual = 'dashboard'
         del st.session_state.palabras_para_categorizar
-        st.experimental_rerun()
+        st.rerun() # --- CORRECCIÓN ---
 
 # --- Lógica Principal de la App ---
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
