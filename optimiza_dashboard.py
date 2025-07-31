@@ -54,9 +54,12 @@ if archivo:
             columnas = ["Keyword", "M. Searches", "Click Share"]
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+                    with st.container():
+                        st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
                     st.dataframe(df_kw_filtrado[columnas].style.set_properties(**{
                         "white-space": "normal", "word-wrap": "break-word"
                     }), use_container_width=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- DATOS DE COMPETIDORES ---
@@ -69,9 +72,12 @@ if archivo:
             df_asin_comp = pd.DataFrame({"ASIN de competidor": asin_list})
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+                    with st.container():
+                        st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
                     st.dataframe(df_asin_comp.style.set_properties(**{
                         "white-space": "normal", "word-wrap": "break-word"
                     }), use_container_width=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         st.subheader("Keywords por ranking de competidor")
@@ -85,9 +91,12 @@ if archivo:
 
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
                 st.dataframe(cols.reset_index(drop=True).style.set_properties(**{
                     "white-space": "normal", "word-wrap": "break-word"
                 }), use_container_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- LISTA AVOIDS ---
@@ -108,9 +117,12 @@ if archivo:
         df_cust = df_cust[df_cust["Frequency"] > 2]
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            with st.container():
+                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(df_cust.reset_index(drop=True).style.set_properties(**{
                 "white-space": "normal", "word-wrap": "break-word"
             }), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.subheader("Palabras únicas de competidores")
@@ -120,9 +132,12 @@ if archivo:
         df_comp = df_comp[df_comp["Frequency"] > 2]
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            with st.container():
+                st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(df_comp.reset_index(drop=True).style.set_properties(**{
                 "white-space": "normal", "word-wrap": "break-word"
             }), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # --- NUEVAS PALABRAS ---
@@ -139,6 +154,8 @@ if archivo:
         df_nuevas = pd.DataFrame(st.session_state["nuevas_avoids"], columns=["Palabra", "Categoría"])
     with st.container():
         st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+                with st.container():
+                    st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
                 st.dataframe(df_nuevas.style.set_properties(**{
                     "white-space": "normal", "word-wrap": "break-word"
                 }), use_container_width=True)
