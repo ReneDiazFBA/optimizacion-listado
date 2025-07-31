@@ -13,7 +13,8 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW")
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
-
+        
+        # Carga 'avoids' y le asigna nombres a las columnas
         avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=None)
         avoids_df.columns = ["Stopword", "Marca", "Irrelevante"]
         st.session_state.avoids_df = avoids_df
@@ -25,13 +26,23 @@ def inicializar_datos(archivo_subido):
         st.error(f"No se pudo leer el archivo: {e}")
         st.session_state.datos_cargados = False
 
+# --- Interfaz de Usuario ---
+
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
-if archivo and not st.session_state.get('datos_cargados', False):
-    inicializar_datos(archivo)
+# Reinicia el estado si se sube un nuevo archivo
+if archivo:
+    if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
+        st.session_state.clear()
+        st.session_state.last_uploaded_file = archivo.name
+    
+    if not st.session_state.get('datos_cargados', False):
+        inicializar_datos(archivo)
 
+# Muestra el dashboard solo si los datos han sido cargados exitosamente
 if st.session_state.get('datos_cargados', False):
-
+    
+    # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
 
@@ -66,6 +77,7 @@ if st.session_state.get('datos_cargados', False):
             }))
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
         st.subheader("ASIN de competidores")
         asin_raw = str(st.session_state.df_comp.iloc[0, 0])
@@ -94,7 +106,9 @@ if st.session_state.get('datos_cargados', False):
         }))
         st.markdown("</div>", unsafe_allow_html=True)
 
+    # --- SECCIÓN PARA AGREGAR Y MOSTRAR AVOIDS ---
     st.subheader("Agregar nuevas palabras a Avoids")
+    
     with st.form(key="avoid_form"):
         nueva_palabra = st.text_input("Escribe una palabra nueva:")
         categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"])
@@ -104,15 +118,19 @@ if st.session_state.get('datos_cargados', False):
             avoids_df = st.session_state.avoids_df
             last_idx = avoids_df[categoria].last_valid_index()
             target_idx = 0 if last_idx is None else last_idx + 1
+
             if target_idx >= len(avoids_df):
                 nueva_fila_df = pd.DataFrame([[pd.NA, pd.NA, pd.NA]], columns=avoids_df.columns)
                 st.session_state.avoids_df = pd.concat([avoids_df, nueva_fila_df], ignore_index=True)
+
             st.session_state.avoids_df.loc[target_idx, categoria] = nueva_palabra
-            st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria}'.")
+            st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria}'. Las tablas de palabras únicas se han actualizado.")
 
     st.subheader("Palabras en lista de exclusión ('Avoids')")
     col1, col2, col3 = st.columns(3)
+    
     avoids_display = st.session_state.avoids_df
+    
     with col1:
         st.markdown("**Stopwords**")
         st.dataframe(avoids_display["Stopword"].dropna().reset_index(drop=True), use_container_width=True)
@@ -122,3 +140,35 @@ if st.session_state.get('datos_cargados', False):
     with col3:
         st.markdown("**Irrelevantes**")
         st.dataframe(avoids_display["Irrelevante"].dropna().reset_index(drop=True), use_container_width=True)
+
+    # --- LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS ---
+    
+    avoid_list = pd.concat([
+        avoids_display["Stopword"], 
+        avoids_display["Marca"], 
+        avoids_display["Irrelevante"]
+    ]).dropna().unique().tolist()
+
+    st.subheader("Palabras únicas del cliente (filtradas)")
+    filtro_cust = st.checkbox("Ocultar frecuencia ≤ 2", value=True, key="fc")
+    df_cust = st.session_state.df_cust_unique.rename(columns=lambda c: c.strip().capitalize())
+    df_cust_filtered = df_cust[~df_cust['Word'].isin(avoid_list)]
+    if filtro_cust:
+        df_cust_filtered = df_cust_filtered[df_cust_filtered["Frequency"] > 2]
+    st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+    st.dataframe(df_cust_filtered.reset_index(drop=True).style.set_properties(**{
+        "white-space": "normal", "word-wrap": "break-word"
+    }))
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.subheader("Palabras únicas de competidores (filtradas)")
+    filtro_comp = st.checkbox("Ocultar frecuencia ≤ 2 (competidores)", value=True, key="fc2")
+    df_comp = st.session_state.df_comp_unique.rename(columns=lambda c: c.strip().capitalize())
+    df_comp_filtered = df_comp[~df_comp['Word'].isin(avoid_list)]
+    if filtro_comp:
+        df_comp_filtered = df_comp_filtered[df_comp_filtered["Frequency"] > 2]
+    st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+    st.dataframe(df_comp_filtered.reset_index(drop=True).style.set_properties(**{
+        "white-space": "normal", "word-wrap": "break-word"
+    }))
+    st.markdown("</div>", unsafe_allow_html=True)
