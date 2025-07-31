@@ -128,4 +128,4 @@ if archivo:
     if "nuevas_avoids" in st.session_state and st.session_state["nuevas_avoids"]:
         st.markdown("### Palabras nuevas seleccionadas:")
         df_nuevas = pd.DataFrame(st.session_state["nuevas_avoids"], columns=["Palabra", "Categoría"])
-        st.dataframe(df_nuevas, use_container_width=True.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
+        st.dataframe(df_nuevas.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True)
