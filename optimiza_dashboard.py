@@ -11,7 +11,6 @@ def extract_mining_title(title_string):
     if not isinstance(title_string, str):
         return "Título no encontrado"
     
-    # Busca el texto entre 'US-' y el primer '(' o '-' que encuentre
     match = re.search(r'US-(.*?)(?:\(|$|-)', title_string)
     if match:
         return match.group(1).strip()
@@ -32,14 +31,11 @@ def inicializar_datos(archivo_subido):
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
         
-        # --- LÓGICA ACTUALIZADA PARA MININGKW ---
         if 'MiningKW' in xls.sheet_names:
-            # Leer la primera fila para el título
             title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
             title_string = title_df.iloc[0, 0] if not title_df.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
             
-            # Leer los datos usando la fila 2 como encabezado (header=1)
             st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=1, engine='openpyxl')
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
@@ -120,8 +116,25 @@ if st.session_state.get('datos_cargados', False):
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
+        
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Se restauró el código dentro de este bloque 'if'
         if subtabs == "Listado de ASINs":
-            # ... (código sin cambios)
+            for _, row in st.session_state.df_asin.iterrows():
+                asin = row.get("ASIN", "")
+                titulo = row.get("Product Title", "")
+                bullets = row.get("Bullet Points", "")
+                descripcion = row.get("Description", "")
+                with st.expander(f"ASIN: {asin}"):
+                    st.markdown("**Título del producto:**")
+                    st.write(titulo)
+                    st.markdown("**Puntos clave:**")
+                    st.write(bullets)
+                    if pd.notna(descripcion) and str(descripcion).strip():
+                        st.markdown("**Descripción:**")
+                        st.write(descripcion)
+        # --- FIN DE LA CORRECCIÓN ---
+        
         elif subtabs == "Palabras Clave (Keywords)":
             opciones = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
             seleccion = st.selectbox("Filtrar por porcentaje de clics:", list(opciones.keys()))
@@ -144,7 +157,6 @@ if st.session_state.get('datos_cargados', False):
 
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
-        # ... (código sin cambios)
         st.subheader("ASIN de competidores")
         with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
             asin_raw = str(st.session_state.df_comp.iloc[0, 0])
@@ -172,7 +184,6 @@ if st.session_state.get('datos_cargados', False):
             st.dataframe(cols.reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- INICIO DE NUEVA SECCIÓN ---
     # DATOS DE MINERÍA (Solo se mostrará si la pestaña existe en el Excel)
     if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
         with st.expander("Minería de Datos", expanded=False):
@@ -183,12 +194,10 @@ if st.session_state.get('datos_cargados', False):
             df_mining = st.session_state.df_mining_kw
             
             try:
-                # Nombres de las columnas según la fila 2 del Excel
-                col_a_name = df_mining.columns[0] # Columna A
-                col_c_name = df_mining.columns[2] # Columna C
-                col_f_name = df_mining.columns[5] # Columna F
+                col_a_name = df_mining.columns[0]
+                col_c_name = df_mining.columns[2]
+                col_f_name = df_mining.columns[5]
 
-                # Seleccionar y renombrar las columnas para mostrar
                 df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
                 df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
                 
@@ -196,8 +205,6 @@ if st.session_state.get('datos_cargados', False):
 
             except (IndexError, KeyError) as e:
                 st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
-    # --- FIN DE NUEVA SECCIÓN ---
-
 
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
