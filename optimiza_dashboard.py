@@ -87,7 +87,7 @@ if archivo:
         cols["CTR"] = pd.to_numeric(cols["CTR"], errors="coerce")
         filtradas = cols.dropna(subset=["Ranking ASIN", "Impresiones", "CTR"])
         filtradas = filtradas[filtradas["Ranking ASIN"] > rango]
-        st.dataframe(filtradas.reset_index(drop=True.style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True))
+        st.dataframe(filtradas.reset_index(drop=True).style.set_properties(**{'white-space': 'normal', 'word-wrap': 'break-word'}), use_container_width=True))
 
     # --- AVOIDS Y PALABRAS ÚNICAS ---
     st.markdown("---")
