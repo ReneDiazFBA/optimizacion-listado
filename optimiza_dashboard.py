@@ -81,12 +81,6 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    # El formulario de categorización se muestra arriba si está activado
-    if st.session_state.get('show_categorization_form', False):
-        mostrar_pagina_categorizacion()
-        st.divider()
-    
-    # El dashboard principal siempre se muestra debajo
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         subtabs = st.radio("Selecciona una vista:", ["Listado de ASINs", "Palabras Clave (Keywords)"], key="cliente_radio")
@@ -148,6 +142,11 @@ if st.session_state.get('datos_cargados', False):
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
         
+        # El formulario de categorización se muestra aquí si está activado
+        if st.session_state.get('show_categorization_form', False):
+            mostrar_pagina_categorizacion()
+            st.divider()
+
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
             col1, col2, col3 = st.columns(3)
