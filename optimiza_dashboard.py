@@ -13,11 +13,11 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
 
-        # Lee la primera fila de la pestaña 'Avoids' como el encabezado (header=0).
+        # Lee la primera fila de la pestaña 'Avoids' como el encabezado.
         avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.avoids_df = avoids_df
 
-        # Ignora la primera fila de títulos en estas pestañas
+        # Ignora la primera fila de títulos en estas pestañas.
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", skiprows=1)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", skiprows=1)
 
@@ -29,7 +29,7 @@ def inicializar_datos(archivo_subido):
 # --- Interfaz de Usuario ---
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
-# Reinicia el estado si se sube un nuevo archivo
+# Reinicia el estado si se sube un nuevo archivo.
 if archivo:
     if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
         st.session_state.clear()
@@ -38,7 +38,7 @@ if archivo:
     if not st.session_state.get('datos_cargados', False):
         inicializar_datos(archivo)
 
-# Muestra el dashboard solo si los datos han sido cargados exitosamente
+# Muestra el dashboard solo si los datos han sido cargados exitosamente.
 if st.session_state.get('datos_cargados', False):
 
     # DATOS DEL CLIENTE
@@ -108,7 +108,6 @@ if st.session_state.get('datos_cargados', False):
     # SECCIÓN PARA AGREGAR Y MOSTRAR AVOIDS
     st.subheader("Agregar nuevas palabras a Avoids")
 
-    # Usamos los nombres de columna directamente del dataframe cargado
     avoid_column_names = st.session_state.avoids_df.columns.tolist()
 
     with st.form(key="avoid_form"):
@@ -122,7 +121,6 @@ if st.session_state.get('datos_cargados', False):
             target_idx = 0 if last_idx is None else last_idx + 1
 
             if target_idx >= len(avoids_df):
-                # Crea una nueva fila para extender el dataframe
                 new_row = pd.DataFrame([[pd.NA] * len(avoids_df.columns)], columns=avoids_df.columns)
                 st.session_state.avoids_df = pd.concat([avoids_df, new_row], ignore_index=True)
 
@@ -133,19 +131,18 @@ if st.session_state.get('datos_cargados', False):
     col1, col2, col3 = st.columns(3)
 
     avoids_display = st.session_state.avoids_df
-
-    # Usamos los nombres de columna reales para mostrar los datos
     col1_name, col2_name, col3_name = avoid_column_names[0], avoid_column_names[1], avoid_column_names[2]
 
+    # ---- INICIO DE LA CORRECCIÓN ----
+    # Se eliminaron los st.markdown() que creaban títulos duplicados.
+    # El nombre de la columna ahora solo aparece en el encabezado de la tabla.
     with col1:
-        st.markdown(f"**{col1_name}**")
         st.dataframe(avoids_display[col1_name].dropna().reset_index(drop=True), use_container_width=True)
     with col2:
-        st.markdown(f"**{col2_name}**")
         st.dataframe(avoids_display[col2_name].dropna().reset_index(drop=True), use_container_width=True)
     with col3:
-        st.markdown(f"**{col3_name}**")
         st.dataframe(avoids_display[col3_name].dropna().reset_index(drop=True), use_container_width=True)
+    # ---- FIN DE LA CORRECCIÓN ----
 
 
     # LÓGICA DE FILTRADO Y VISUALIZACIÓN DE PALABRAS ÚNICAS
@@ -165,7 +162,6 @@ if st.session_state.get('datos_cargados', False):
         df_cust_filtered = df_cust[~df_cust[word_column_cust].isin(avoid_list)]
 
         if filtro_cust and freq_column_cust:
-            # Convertimos la columna a numérico por si acaso
             df_cust_filtered[freq_column_cust] = pd.to_numeric(df_cust_filtered[freq_column_cust], errors='coerce')
             df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_column_cust].notna() & (df_cust_filtered[freq_column_cust] > 2)]
     else:
