@@ -26,18 +26,15 @@ if archivo:
             descripcion = row.get("Description", "")
 
             with st.expander(f"ASIN: {asin}"):
-                st.markdown(f"**Título del producto:**
-
-{titulo}")
+                st.markdown("**Título del producto:**")
+                st.write(titulo)
                 st.markdown("---")
-                st.markdown(f"**Puntos clave:**
-
-{bullets}")
+                st.markdown("**Puntos clave:**")
+                st.write(bullets)
                 if pd.notna(descripcion) and str(descripcion).strip():
                     st.markdown("---")
-                    st.markdown(f"**Descripción:**
-
-{descripcion}")
+                    st.markdown("**Descripción:**")
+                    st.write(descripcion)
 
     elif pestaña == "🔍 Palabras Clave (Keywords)":
         st.subheader("Palabras clave del producto")
