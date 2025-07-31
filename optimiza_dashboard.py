@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 
@@ -84,19 +83,21 @@ if archivo:
 
     # NUEVAS PALABRAS
     st.subheader("Agregar nuevas palabras a Avoids")
-    nueva_palabra = st.text_input("Escribe una palabra nueva:", key="nueva_palabra_input_avoids")
-    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"], key="categoria_select_avoids")
+    nueva_palabra = st.text_input("Escribe una palabra nueva:", key="nueva_palabra_input")
+    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"], key="categoria_select")
 
     if st.button("Agregar a Avoids") and nueva_palabra:
         col_map = {"Stopword": 0, "Marca": 1, "Irrelevante": 2}
         col_idx = col_map.get(categoria)
         if col_idx is not None:
+            # Intenta encontrar una celda vacía para insertar la palabra
             for i in range(len(avoids)):
                 if pd.isna(avoids.iat[i, col_idx]):
                     avoids.iat[i, col_idx] = nueva_palabra
                     break
             else:
-                nueva_fila = [None, None, None]
+                # Si no hay celdas vacías, agrega una nueva fila
+                nueva_fila = [pd.NA, pd.NA, pd.NA]
                 nueva_fila[col_idx] = nueva_palabra
                 avoids.loc[len(avoids)] = nueva_fila
 
@@ -131,22 +132,3 @@ if archivo:
         "white-space": "normal", "word-wrap": "break-word"
     }))
     st.markdown("</div>", unsafe_allow_html=True)
-
-    # NUEVAS PALABRAS
-    st.subheader("Agregar nuevas palabras a Avoids")
-    nueva_palabra = st.text_input("Escribe una palabra nueva:", key="nueva_palabra_input_avoids")
-    categoria = st.selectbox("Categoría", ["Stopword", "Marca", "Irrelevante"], key="categoria_select_avoids")
-
-    if st.button("Agregar a Avoids") and nueva_palabra:
-        col_map = {"Stopword": 0, "Marca": 1, "Irrelevante": 2}
-        col_idx = col_map.get(categoria)
-        if col_idx is not None:
-            for i in range(len(avoids)):
-                if pd.isna(avoids.iat[i, col_idx]):
-                    avoids.iat[i, col_idx] = nueva_palabra
-                    break
-            else:
-                nueva_fila = [None, None, None]
-                nueva_fila[col_idx] = nueva_palabra
-                avoids.loc[len(avoids)] = nueva_fila
-
