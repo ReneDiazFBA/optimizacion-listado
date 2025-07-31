@@ -114,20 +114,22 @@ if st.session_state.get('datos_cargados', False):
         avoid_column_names = st.session_state.avoids_df.columns.tolist()
         with st.form(key="avoid_form"):
             nueva_palabra = st.text_input("Escribe una palabra nueva:")
-            categoria = st.selectbox("Categoría", avoid_column_names)
+            categoria_seleccionada = st.selectbox("Categoría", avoid_column_names)
             submitted = st.form_submit_button("Agregar a Avoids")
 
             if submitted and nueva_palabra:
                 avoids_df = st.session_state.avoids_df
-                last_idx = avoids_df[categoria].last_valid_index()
+                last_idx = avoids_df[categoria_seleccionada].last_valid_index()
                 target_idx = 0 if last_idx is None else last_idx + 1
 
                 if target_idx >= len(avoids_df):
                     new_row = pd.DataFrame([[pd.NA] * len(avoids_df.columns)], columns=avoids_df.columns)
                     st.session_state.avoids_df = pd.concat([avoids_df, new_row], ignore_index=True)
 
-                st.session_state.avoids_df.loc[target_idx, categoria] = nueva_palabra
-                st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria}'. Las tablas de palabras únicas se han actualizado.")
+                st.session_state.avoids_df.loc[target_idx, categoria_seleccionada] = nueva_palabra
+                st.success(f"Palabra '{nueva_palabra}' agregada a '{categoria_seleccionada}'.")
+                st.experimental_rerun()
+
 
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
@@ -148,8 +150,6 @@ if st.session_state.get('datos_cargados', False):
         
         st.divider()
 
-        # ---- INICIO DE CAMBIO RADICAL ----
-
         # --- PALABRAS ÚNICAS DEL CLIENTE ---
         st.subheader("Palabras únicas del cliente (filtradas)")
         filtro_cust = st.checkbox("Ocultar frecuencia ≤ 2", value=True, key="fc")
@@ -163,21 +163,34 @@ if st.session_state.get('datos_cargados', False):
                 df_cust_filtered = df_cust_filtered[df_cust_filtered[freq_col_cust].notna() & (df_cust_filtered[freq_col_cust] > 2)]
 
             if not df_cust_filtered.empty:
-                # Crear encabezados de tabla manualmente
-                header_cols = [0.5] + [1.5] + [1] * (len(df_cust_filtered.columns) - 1)
-                cols = st.columns(header_cols)
-                cols[0].write("**Sel.**")
+                header_cols_spec = [0.5, 2] + [1] * (len(df_cust_filtered.columns) - 1)
+                header_cols = st.columns(header_cols_spec)
+                header_cols[0].write("**Sel.**")
                 for i, col_name in enumerate(df_cust_filtered.columns):
-                    cols[i+1].write(f"**{col_name}**")
+                    header_cols[i+1].write(f"**{col_name}**")
                 
                 st.divider()
 
-                # Iterar para mostrar cada fila con un checkbox
                 for index, row in df_cust_filtered.iterrows():
-                    cols = st.columns(header_cols)
-                    cols[0].checkbox("", key=f"cust_cb_{index}")
+                    row_cols = st.columns(header_cols_spec)
+                    row_cols[0].checkbox("", key=f"cust_cb_{index}")
                     for i, col_name in enumerate(df_cust_filtered.columns):
-                        cols[i+1].write(row[col_name])
+                        row_cols[i+1].write(row[col_name])
+                
+                st.divider()
+                # ---- INICIO DEL NUEVO CÓDIGO ----
+                if st.button("añadir a Avoids", key="cust_add_to_avoids"):
+                    palabras_a_anadir = []
+                    for index, row in df_cust_filtered.iterrows():
+                        if st.session_state.get(f"cust_cb_{index}"):
+                            palabra = row[df_cust_filtered.columns[0]]
+                            palabras_a_anadir.append(palabra)
+                    
+                    if palabras_a_anadir:
+                        st.success(f"Seleccionado para añadir: {', '.join(palabras_a_anadir)}")
+                    else:
+                        st.warning("No has seleccionado ninguna palabra.")
+                # ---- FIN DEL NUEVO CÓDIGO ----
             else:
                 st.write("No hay datos de palabras únicas del cliente para mostrar.")
         
@@ -194,22 +207,33 @@ if st.session_state.get('datos_cargados', False):
                 df_comp_filtered = df_comp_filtered[df_comp_filtered[freq_col_comp].notna() & (df_comp_filtered[freq_col_comp] > 2)]
 
             if not df_comp_filtered.empty:
-                # Crear encabezados de tabla manualmente
-                header_cols = [0.5] + [1.5] + [1] * (len(df_comp_filtered.columns) - 1)
-                cols = st.columns(header_cols)
-                cols[0].write("**Sel.**")
+                header_cols_spec_comp = [0.5, 2] + [1] * (len(df_comp_filtered.columns) - 1)
+                header_cols_comp = st.columns(header_cols_spec_comp)
+                header_cols_comp[0].write("**Sel.**")
                 for i, col_name in enumerate(df_comp_filtered.columns):
-                    cols[i+1].write(f"**{col_name}**")
+                    header_cols_comp[i+1].write(f"**{col_name}**")
 
                 st.divider()
 
-                # Iterar para mostrar cada fila con un checkbox
                 for index, row in df_comp_filtered.iterrows():
-                    cols = st.columns(header_cols)
-                    cols[0].checkbox("", key=f"comp_cb_{index}")
+                    row_cols_comp = st.columns(header_cols_spec_comp)
+                    row_cols_comp[0].checkbox("", key=f"comp_cb_{index}")
                     for i, col_name in enumerate(df_comp_filtered.columns):
-                        cols[i+1].write(row[col_name])
+                        row_cols_comp[i+1].write(row[col_name])
+                
+                st.divider()
+                # ---- INICIO DEL NUEVO CÓDIGO ----
+                if st.button("añadir a Avoids", key="comp_add_to_avoids"):
+                    palabras_a_anadir_comp = []
+                    for index, row in df_comp_filtered.iterrows():
+                        if st.session_state.get(f"comp_cb_{index}"):
+                            palabra = row[df_comp_filtered.columns[0]]
+                            palabras_a_anadir_comp.append(palabra)
+                            
+                    if palabras_a_anadir_comp:
+                        st.success(f"Seleccionado para añadir: {', '.join(palabras_a_anadir_comp)}")
+                    else:
+                        st.warning("No has seleccionado ninguna palabra.")
+                # ---- FIN DEL NUEVO CÓDIGO ----
             else:
                 st.write("No hay datos de palabras únicas de competidores para mostrar.")
-        
-        # ---- FIN DE CAMBIO RADICAL ----
