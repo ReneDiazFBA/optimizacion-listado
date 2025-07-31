@@ -45,7 +45,7 @@ if archivo:
         seleccion = st.selectbox("Filtrar por porcentaje de clics (Click Share):", list(opciones.keys()))
         umbral = opciones[seleccion]
 
-        df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"].str.replace("%", ""), errors="coerce")
+        df_kw["Click Share"] = pd.to_numeric(df_kw["Click Share"].astype(str).str.replace("%", ""), errors="coerce")
         filtrado = df_kw[df_kw["Click Share"] > umbral]
 
         columnas_a_mostrar = {
