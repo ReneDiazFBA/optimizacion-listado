@@ -102,57 +102,6 @@ def mostrar_pagina_categorizacion():
             del st.session_state.palabras_para_categorizar
             st.rerun()
 
-def mostrar_histogramas(df):
-    """Muestra histogramas para las métricas clave del dataframe filtrado."""
-    st.subheader("Distribución de Métricas (Escala Logarítmica)")
-
-    metric_map = {
-        'Search Volume': 'Search Volume',
-        'CS_Cliente_Num': 'Click Share (Cliente)',
-        'Rank_Depth_Num': 'Rank Depth',
-        'TCS_Num': 'Total Click Share',
-        'Relevance_Num': 'Relevance'
-    }
-    
-    col_keys = list(metric_map.keys())
-    
-    for i in range(0, len(col_keys), 2):
-        cols = st.columns(2)
-        if i < len(col_keys):
-            metric_col = col_keys[i]
-            with cols[0]:
-                display_name = metric_map[metric_col]
-                st.markdown(f"###### {display_name}")
-                data_series = df[metric_col][df[metric_col] > 0].dropna()
-                if not data_series.empty:
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black')
-                    ax.set_xscale('log')
-                    ax.set_title(f'Distribución de {display_name}')
-                    ax.set_xlabel(f"{display_name} (Escala Log)")
-                    ax.set_ylabel('Frecuencia')
-                    st.pyplot(fig)
-                else:
-                    st.write(f"No hay datos positivos para graficar para {display_name}.")
-
-        if i + 1 < len(col_keys):
-            metric_col = col_keys[i+1]
-            with cols[1]:
-                display_name = metric_map[metric_col]
-                st.markdown(f"###### {display_name}")
-                data_series = df[metric_col][df[metric_col] > 0].dropna()
-                if not data_series.empty:
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black')
-                    ax.set_xscale('log')
-                    ax.set_title(f'Distribución de {display_name}')
-                    ax.set_xlabel(f"{display_name} (Escala Log)")
-                    ax.set_ylabel('Frecuencia')
-                    st.pyplot(fig)
-                else:
-                    st.write(f"No hay datos positivos para graficar para {display_name}.")
-
-
 # --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
@@ -165,6 +114,41 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
+    with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
+        
+        # Preparar y estandarizar cada fuente de datos
+        # Cliente
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
+        df_cust['Source'] = 'Cliente'
+        
+        # Competencia
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
+        df_comp['Source'] = 'Competencia'
+        
+        # Mining
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
+        df_mining['Source'] = 'Mining'
+        
+        # Consolidar todas las tablas
+        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+        
+        # Reordenar las columnas principales
+        all_cols = df_master.columns.tolist()
+        initial_cols = []
+        if 'Search Terms' in all_cols: initial_cols.append('Search Terms')
+        if 'Source' in all_cols: initial_cols.append('Source')
+        if 'Search Volume' in all_cols: initial_cols.append('Search Volume')
+        
+        other_cols = [col for col in all_cols if col not in initial_cols]
+        new_order = initial_cols + other_cols
+        df_master = df_master[new_order]
+
+        st.dataframe(df_master, height=300)
+
+
     with st.expander("Datos para Análisis", expanded=False):
 
         # DATOS DEL CLIENTE
@@ -376,169 +360,3 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-    
-    with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
-        st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
-
-        # Preparar todas las fuentes de datos
-        df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
-        df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
-        
-        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
-        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
-        
-        df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
-        df_mining_sv.columns = ['Keyword', 'Volumen Mining']
-        
-        df_cust_cs = st.session_state.df_kw.iloc[:, [0, 1]].copy()
-        df_cust_cs.columns = ['Keyword', 'Click Share (Cliente)']
-        
-        df_rev_asin = st.session_state.df_comp_data.iloc[:, [0, 5, 18]].copy()
-        df_rev_asin.columns = ['Keyword', 'Rank Depth', 'Total Click Share']
-        
-        df_mining_rel = st.session_state.df_mining_kw.iloc[:, [0, 2]].copy()
-        df_mining_rel.columns = ['Keyword', 'Relevance']
-
-        # Unir todas las tablas
-        merged1 = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
-        merged2 = pd.merge(merged1, df_mining_sv, on='Keyword', how='outer')
-        merged3 = pd.merge(merged2, df_cust_cs, on='Keyword', how='left')
-        merged4 = pd.merge(merged3, df_rev_asin, on='Keyword', how='left')
-        final_df = pd.merge(merged4, df_mining_rel, on='Keyword', how='left')
-        
-        final_df['FODA'] = ''
-
-        # Limpiar y crear columnas numéricas para cálculos
-        sv_cols = ['Volumen Cliente', 'Volumen Competidor', 'Volumen Mining']
-        for col in sv_cols:
-            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
-        final_df['Search Volume'] = final_df[sv_cols].max(axis=1)
-        
-        final_df['CS_Cliente_Num'] = pd.to_numeric(final_df['Click Share (Cliente)'], errors='coerce') * 100
-        final_df['Rank_Depth_Num'] = pd.to_numeric(final_df['Rank Depth'], errors='coerce')
-        final_df['TCS_Num'] = pd.to_numeric(final_df['Total Click Share'], errors='coerce') * 100
-        final_df['Relevance_Num'] = pd.to_numeric(final_df['Relevance'], errors='coerce')
-        
-        # Calcular columnas normalizadas para las gráficas
-        metrics_to_normalize = {
-            'Search Volume': 'Norm_SV',
-            'CS_Cliente_Num': 'Norm_CS_Cliente',
-            'Rank_Depth_Num': 'Norm_Rank_Depth',
-            'TCS_Num': 'Norm_TCS',
-            'Relevance_Num': 'Norm_Relevance'
-        }
-        for metric, norm_col in metrics_to_normalize.items():
-            max_val = final_df[metric].max()
-            if max_val > 0:
-                final_df[norm_col] = final_df[metric] / max_val
-            else:
-                final_df[norm_col] = 0.0
-        
-        # UI y Lógica para FODA
-        st.subheader("Definir Criterios para FODA: Fortaleza Alta")
-        c1, c2, c3, c4, c5 = st.columns(5)
-        with c1: umbral_sv = st.number_input("Search Volume ≥", value=1000)
-        with c2: umbral_cs_cliente = st.number_input("Click Share Cliente (%) ≥", value=10.0, step=0.1)
-        with c3: umbral_rank_depth = st.number_input("Rank Depth ≤", value=15)
-        with c4: umbral_tcs = st.number_input("Total Click Share (%) ≥", value=10.0, step=0.1)
-        with c5: umbral_relevance = st.number_input("Relevance ≥", value=8)
-
-        mask_fortaleza = (
-            (final_df['Search Volume'] >= umbral_sv) &
-            (final_df['CS_Cliente_Num'] >= umbral_cs_cliente) &
-            (final_df['Rank_Depth_Num'] <= umbral_rank_depth) &
-            (final_df['TCS_Num'] >= umbral_tcs) &
-            (final_df['Relevance_Num'] >= umbral_relevance)
-        )
-        final_df.loc[mask_fortaleza, 'FODA'] = 'Fortaleza Alta'
-
-        # Formatear columnas para visualización
-        final_df['Click Share (Cliente)'] = pd.to_numeric(final_df['Click Share (Cliente)'], errors='coerce')
-        mask = final_df['Click Share (Cliente)'].notna()
-        final_df.loc[mask, 'Click Share (Cliente)'] = (final_df.loc[mask, 'Click Share (Cliente)'] * 100).round(2).astype(str) + '%'
-        final_df['Click Share (Cliente)'].fillna("N/A", inplace=True)
-        
-        final_df['Rank Depth'] = pd.to_numeric(final_df['Rank Depth'], errors='coerce')
-        mask = final_df['Rank Depth'].notna()
-        final_df.loc[mask, 'Rank Depth'] = final_df.loc[mask, 'Rank Depth'].astype(int).astype(str)
-        final_df['Rank Depth'].fillna("N/A", inplace=True)
-        
-        final_df['Total Click Share'] = pd.to_numeric(final_df['Total Click Share'], errors='coerce')
-        mask = final_df['Total Click Share'].notna()
-        final_df.loc[mask, 'Total Click Share'] = (final_df.loc[mask, 'Total Click Share'] * 100).round(2).astype(str) + '%'
-        final_df['Total Click Share'].fillna("N/A", inplace=True)
-        
-        final_df['Relevance'] = pd.to_numeric(final_df['Relevance'], errors='coerce')
-        mask = final_df['Relevance'].notna()
-        final_df.loc[mask, 'Relevance'] = final_df.loc[mask, 'Relevance'].astype(int).astype(str)
-        final_df['Relevance'].fillna("N/A", inplace=True)
-
-        # Filtros y tabla final
-        f_col, m_col = st.columns([1, 2])
-        with f_col:
-            opciones_volumen = ['Mostrar Todos', 'No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
-            seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
-            
-        df_filtrado_vol = final_df.copy()
-        if seleccion_volumen == 'No mostrar Ceros':
-            df_filtrado_vol = final_df[final_df['Search Volume'] > 0]
-        elif seleccion_volumen == 'Mostrar Solo Ceros':
-            df_filtrado_vol = final_df[final_df['Search Volume'] == 0]
-        elif seleccion_volumen != 'Mostrar Todos':
-            umbral = int(seleccion_volumen.replace('>= ', ''))
-            df_filtrado_vol = final_df[final_df['Search Volume'] >= umbral]
-        
-        with m_col:
-            st.metric("Registros Encontrados", len(df_filtrado_vol))
-        
-        all_analytical_cols = ['Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance', 'FODA']
-        default_cols = ['Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance', 'FODA']
-        selected_cols = st.multiselect("Selecciona columnas a mostrar:", all_analytical_cols, default=default_cols)
-        
-        columnas_finales = ['Keyword', 'Search Volume'] + selected_cols
-        result_df = df_filtrado_vol[columnas_finales]
-        result_df.columns = ['Search Terms', 'Search Volume'] + selected_cols
-        
-        st.dataframe(result_df.reset_index(drop=True))
-
-        st.divider()
-        st.subheader("Tabla Maestra Estadistica Descriptiva")
-        
-        numeric_data_for_stats = df_filtrado_vol
-        
-        metric_names_stats = {
-            'Search Volume': 'Search Volume',
-            'CS_Cliente_Num': 'Click Share (Cliente) (%)',
-            'Rank_Depth_Num': 'Rank Depth',
-            'TCS_Num': 'Total Click Share (%)',
-            'Relevance_Num': 'Relevance'
-        }
-        for metric, name in metric_names_stats.items():
-            st.markdown(f"**{name}**")
-            data_series = numeric_data_for_stats[metric].dropna()
-            
-            if not data_series.empty and pd.api.types.is_numeric_dtype(data_series):
-                mean_val = data_series.mean()
-                median_val = data_series.median()
-                mode_val_series = data_series.mode()
-                display_mode = str(mode_val_series.iloc[0]) if not mode_val_series.empty else "N/A"
-                std_val = data_series.std()
-                skew_val = data_series.skew()
-                p75_val = data_series.quantile(0.75)
-                p40_val = data_series.quantile(0.40)
-                cv_val = (std_val / mean_val) if mean_val > 0 else 0
-                
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Media", f"{mean_val:,.2f}")
-                c2.metric("Mediana", f"{median_val:,.2f}")
-                c3.metric("Moda", display_mode)
-                c4.metric("Desv. Estándar", f"{std_val:,.2f}")
-
-                c5, c6, c7, c8 = st.columns(4)
-                c5.metric("P75", f"{p75_val:,.2f}")
-                c6.metric("P40", f"{p40_val:,.2f}")
-                c7.metric("Asimetría", f"{skew_val:,.2f}")
-                c8.metric("Coef. Variación", f"{cv_val:.2%}")
-            st.divider()
-        
-        mostrar_histogramas(numeric_data_for_stats)
