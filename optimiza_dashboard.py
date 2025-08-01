@@ -180,8 +180,6 @@ if st.session_state.get('datos_cargados', False):
         final_df.loc[mask_fortaleza, 'FODA'] = 'Fortaleza Alta'
 
         # --- INICIO DE LA CORRECCIÓN DE FORMATO ---
-        # Formatear columnas para visualización de forma segura
-        
         # Click Share (Cliente)
         final_df['Click Share (Cliente)'] = pd.to_numeric(final_df['Click Share (Cliente)'], errors='coerce')
         mask = final_df['Click Share (Cliente)'].notna()
@@ -272,10 +270,10 @@ if st.session_state.get('datos_cargados', False):
             df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15]].copy()
             df_kw_proc.columns = ["Search Terms", "Click Share", "Search Volume"]
 
-            df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
+            df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors="coerce")
             df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks].copy()
             df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
-            df_kw_filtrado["Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
+            df_kw_filtrado["Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors="coerce").fillna(0).astype(int)
             
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
                 st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
