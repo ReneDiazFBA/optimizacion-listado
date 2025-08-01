@@ -193,22 +193,18 @@ if st.session_state.get('datos_cargados', False):
             seleccion_clicks = st.selectbox("Filtrar por porcentaje de clics:", list(opciones_clicks.keys()))
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
-            # --- INICIO DE LA CORRECCIÓN ---
-            # Se leen las 4 columnas necesarias (A, B, P, Z)
             df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
             df_kw_proc.columns = ["Search Terms", "Click Share", "Search Volume", "Total Click Share"]
 
-            # Se convierte Click Share a numérico para el filtro
             df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks].copy()
             
-            # Se formatean las columnas para la visualización
+            # --- INICIO DE LA CORRECCIÓN ---
             df_kw_filtrado.loc[:, "Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
             df_kw_filtrado.loc[:, "Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
             
-            # Lógica robusta para formatear Total Click Share
-            tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce')
-            df_kw_filtrado.loc[:, "Total Click Share"] = tcs_numeric.round(2).astype(str) + '%'
+            df_kw_filtrado.loc[:, "Total Click Share"] = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
+            df_kw_filtrado.loc[:, "Total Click Share"] = (df_kw_filtrado["Total Click Share"] * 100).round(2).astype(str) + '%'
             # --- FIN DE LA CORRECCIÓN ---
             
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
@@ -233,8 +229,10 @@ if st.session_state.get('datos_cargados', False):
             df_comp_data_proc = df_comp_data_proc.dropna()
             
             df_comp_data_proc['Search Volume'] = pd.to_numeric(df_comp_data_proc['Search Volume'], errors='coerce').fillna(0).astype(int)
+            
             df_comp_data_proc['Total Click Share'] = pd.to_numeric(df_comp_data_proc['Total Click Share'], errors='coerce').fillna(0)
-            df_comp_data_proc['Total Click Share'] = df_comp_data_proc['Total Click Share'].round(2).astype(str) + '%'
+            df_comp_data_proc['Total Click Share'] = (df_comp_data_proc['Total Click Share'] * 100).round(2).astype(str) + '%'
+
             df_comp_data_proc['Rank Depth'] = pd.to_numeric(df_comp_data_proc['Rank Depth'], errors='coerce')
             df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Rank Depth"].notna() & (df_comp_data_proc["Rank Depth"] > rango)]
 
