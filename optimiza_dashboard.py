@@ -194,17 +194,21 @@ if st.session_state.get('datos_cargados', False):
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
             # --- INICIO DE LA CORRECCIÓN ---
+            # Se leen las 4 columnas necesarias (A, B, P, Z)
             df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
             df_kw_proc.columns = ["Search Terms", "Click Share", "Search Volume", "Total Click Share"]
 
+            # Se convierte Click Share a numérico para el filtro
             df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks].copy()
             
+            # Se formatean las columnas para la visualización
             df_kw_filtrado.loc[:, "Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
             df_kw_filtrado.loc[:, "Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
             
-            df_kw_filtrado.loc[:, "Total Click Share"] = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
-            df_kw_filtrado.loc[:, "Total Click Share"] = df_kw_filtrado["Total Click Share"].round(2).astype(str) + '%'
+            # Lógica robusta para formatear Total Click Share
+            tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce')
+            df_kw_filtrado.loc[:, "Total Click Share"] = tcs_numeric.round(2).astype(str) + '%'
             # --- FIN DE LA CORRECCIÓN ---
             
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
