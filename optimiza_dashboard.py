@@ -305,7 +305,7 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra.")
             else:
                 st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-    
+
     with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
         st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
 
