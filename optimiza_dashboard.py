@@ -151,7 +151,6 @@ def mostrar_histogramas(df):
                 else:
                     st.write(f"No hay datos para graficar para {display_name}.")
 
-
 # --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
@@ -186,7 +185,7 @@ if st.session_state.get('datos_cargados', False):
         df_mining_rel = st.session_state.df_mining_kw.iloc[:, [0, 2]].copy()
         df_mining_rel.columns = ['Keyword', 'Relevance']
 
-        # Unir todas las tablas
+        # Unir todas las tablas en una tabla final
         merged1 = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
         merged2 = pd.merge(merged1, df_mining_sv, on='Keyword', how='outer')
         merged3 = pd.merge(merged2, df_cust_cs, on='Keyword', how='left')
@@ -305,7 +304,7 @@ if st.session_state.get('datos_cargados', False):
                 mean_val = data_series.mean()
                 median_val = data_series.median()
                 mode_val_series = data_series.mode()
-                display_mode = mode_val_series.iloc[0] if not mode_val_series.empty else "N/A"
+                display_mode = str(mode_val_series.iloc[0]) if not mode_val_series.empty else "N/A"
                 std_val = data_series.std()
                 skew_val = data_series.skew()
                 p75_val = data_series.quantile(0.75)
@@ -315,7 +314,7 @@ if st.session_state.get('datos_cargados', False):
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Media", f"{mean_val:,.2f}")
                 c2.metric("Mediana", f"{median_val:,.2f}")
-                c3.metric("Moda", str(display_mode))
+                c3.metric("Moda", display_mode)
                 c4.metric("Desv. Estándar", f"{std_val:,.2f}")
 
                 c5, c6, c7, c8 = st.columns(4)
@@ -327,8 +326,8 @@ if st.session_state.get('datos_cargados', False):
         
         mostrar_histogramas(numeric_data_for_stats)
 
-
     with st.expander("Datos para Análisis", expanded=False):
+
         # DATOS DEL CLIENTE
         with st.expander("Datos del cliente", expanded=False):
             st.subheader("Listing de ASIN")
