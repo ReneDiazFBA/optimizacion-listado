@@ -189,8 +189,14 @@ if st.session_state.get('datos_cargados', False):
             st.subheader("Reverse ASIN Competidores")
             rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1)
             
-            df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
-            df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
+            df_comp_data_proc = st.session_state.df_comp_data.copy()
+            df_comp_data_proc = df_comp_data_proc.rename(columns={
+                df_comp_data_proc.columns[0]: "Search Terms",
+                df_comp_data_proc.columns[2]: "Sample Click Share",
+                df_comp_data_proc.columns[5]: "Sample Product Depth",
+                df_comp_data_proc.columns[8]: "Search Volume",
+                df_comp_data_proc.columns[18]: "Niche Click Share"
+            })
             
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
             
@@ -332,7 +338,7 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-
+    
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
         # Preparar y estandarizar cada fuente de datos
@@ -354,7 +360,7 @@ if st.session_state.get('datos_cargados', False):
             df_comp.columns[8]: "Search Volume",
             df_comp.columns[18]: "Niche Click Share"
         })
-
+        
         df_mining = st.session_state.df_mining_kw.copy()
         df_mining['Source'] = 'Mining'
         df_mining = df_mining.rename(columns={
@@ -364,6 +370,16 @@ if st.session_state.get('datos_cargados', False):
             df_mining.columns[12]: "Niche Product Depth",
             df_mining.columns[15]: "Niche Click Share"
         })
+
+        # Seleccionar solo las columnas relevantes de cada fuente
+        cols_cliente = ['Search Terms', 'Source', 'Search Volume', 'ASIN Click Share', 'Total Click Share']
+        df_cust = df_cust[cols_cliente]
+        
+        cols_comp = ['Search Terms', 'Source', 'Search Volume', 'Sample Click Share', 'Niche Click Share', 'Sample Product Depth']
+        df_comp = df_comp[cols_comp]
+        
+        cols_mining = ['Search Terms', 'Source', 'Search Volume', 'Niche Click Share', 'Niche Product Depth', 'Relevance']
+        df_mining = df_mining[cols_mining]
 
         # Consolidar todas las tablas
         df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
