@@ -116,18 +116,15 @@ if st.session_state.get('datos_cargados', False):
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         
-        # --- INICIO DE LA CORRECCIÓN ---
         st.subheader("Listado de ASINs")
         for index, row in st.session_state.df_asin.iterrows():
             try:
-                # Leer por posición de columna (A=0, B=1, etc.)
                 marketplace = row.iloc[0]
                 asin = row.iloc[1]
                 titulo = row.iloc[2]
                 bullets = row.iloc[3]
                 descripcion_raw = row.iloc[4]
 
-                # Lógica para la descripción vacía
                 if pd.isna(descripcion_raw) or str(descripcion_raw).strip() == "":
                     descripcion = "Este ASIN tiene contenido A+"
                 else:
@@ -142,11 +139,9 @@ if st.session_state.get('datos_cargados', False):
                     st.markdown("**Descripción:**")
                     st.write(descripcion)
             except IndexError:
-                # Si una fila no tiene suficientes columnas, la omite y avisa
                 st.warning(f"Se omitió la fila {index+1} de la pestaña 'CustListing' por no tener el formato esperado.")
                 continue
-        # --- FIN DE LA CORRECCIÓN ---
-
+        
         st.divider()
 
         st.subheader("Palabras Clave (Keywords)")
@@ -168,6 +163,7 @@ if st.session_state.get('datos_cargados', False):
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
+
 
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
@@ -199,13 +195,20 @@ if st.session_state.get('datos_cargados', False):
         df_comp_data_copy = st.session_state.df_comp_data.copy()
         df_comp_data_copy.replace(r'^\s*$', pd.NA, regex=True, inplace=True)
         cols = df_comp_data_copy.iloc[:, [0, 5, 8, 18]].copy()
-        cols.columns = ["Palabra clave", "Ranking ASIN", "Impresiones", "CTR"]
+        
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Mapeo y renombrado de columnas
+        cols.columns = ["Palabra clave", "Cmp. Depth", "Impresiones", "Click Share"]
         cols = cols.dropna()
+        
+        # Formato de columnas usando los nuevos nombres
         cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
-        cols['CTR'] = pd.to_numeric(cols['CTR'], errors='coerce').fillna(0)
-        cols['CTR'] = cols['CTR'].round(2).astype(str) + '%'
-        cols['Ranking ASIN'] = pd.to_numeric(cols['Ranking ASIN'], errors='coerce')
-        cols = cols[cols["Ranking ASIN"].notna() & (cols["Ranking ASIN"] > rango)]
+        cols['Click Share'] = pd.to_numeric(cols['Click Share'], errors='coerce').fillna(0)
+        cols['Click Share'] = cols['Click Share'].round(2).astype(str) + '%'
+        cols['Cmp. Depth'] = pd.to_numeric(cols['Cmp. Depth'], errors='coerce')
+        cols = cols[cols["Cmp. Depth"].notna() & (cols["Cmp. Depth"] > rango)]
+        # --- FIN DE LA CORRECCIÓN ---
+
         with st.expander("Ver/Ocultar Keywords de Competidores por Ranking", expanded=True):
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
             st.dataframe(cols.reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
