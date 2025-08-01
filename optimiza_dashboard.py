@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import re
@@ -5,7 +6,6 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 
-# --- Funciones ---
 def extract_mining_title(title_string):
     if not isinstance(title_string, str):
         return "Título no encontrado"
@@ -50,7 +50,6 @@ def inicializar_datos(archivo_subido):
         st.error(f"Error al leer las pestañas. Error: {e}")
         st.session_state.datos_cargados = False
 
-# --- App Principal ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
@@ -61,10 +60,6 @@ if archivo:
         inicializar_datos(archivo)
 
 if st.session_state.get('datos_cargados', False):
-    # --- Aquí mantienes todo tu flujo actual de cliente, competencia, minería, avoids, etc. ---
-    # NO te toco esa parte porque me dijiste que no cambie nada.
-
-    # --- SOLO CAMBIAMOS AQUÍ LA TABLA MAESTRA ---
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
@@ -78,7 +73,6 @@ if st.session_state.get('datos_cargados', False):
         df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
         df_mining['Source'] = 'Mining'
 
-        # --- AQUI EL FIX ---
         df_cust = df_cust[df_cust["Search Terms"] != "Keyword Phrase"]
         df_comp = df_comp[df_comp["Search Terms"] != "Keyword"]
         df_mining = df_mining[df_mining["Search Terms"] != "Keyword"]
@@ -97,7 +91,7 @@ if st.session_state.get('datos_cargados', False):
                 df_master.loc[mask, col] = (df_master.loc[mask, col] * 100).round(2).astype(str) + '%'
 
         column_order = [
-            'Search Terms', 'Source', 'Search Volume', 
+            'Search Terms', 'Source', 'Search Volume',
             'ASIN Click Share', 'Sample Click Share', 'Niche Click Share', 'Total Click Share',
             'Sample Product Depth', 'Niche Product Depth', 'Relevance'
         ]
@@ -105,4 +99,4 @@ if st.session_state.get('datos_cargados', False):
         df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master, height=300)
+        st.dataframe(df_master, height=500)
