@@ -113,9 +113,6 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    # --- INICIO DE LA CORRECCIÓN ---
-    # Se restauró el contenido de las siguientes dos secciones
-    
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
         st.subheader("Listado de ASINs")
@@ -166,6 +163,7 @@ if st.session_state.get('datos_cargados', False):
             st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
 
+
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
         st.subheader("ASIN de competidores")
@@ -211,29 +209,14 @@ if st.session_state.get('datos_cargados', False):
             st.dataframe(cols.reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- FIN DE LA CORRECCIÓN ---
-
-    # DATOS DE MINERÍA (Solo se mostrará si la pestaña existe en el Excel)
+    # DATOS DE MINERÍA
     if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
         with st.expander("Minería de Datos", expanded=False):
-            
             st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
             st.divider()
-
-            df_mining = st.session_state.df_mining_kw
             
-            try:
-                col_a_name = df_mining.columns[0]
-                col_c_name = df_mining.columns[2]
-                col_f_name = df_mining.columns[5]
+            st.dataframe(st.session_state.df_mining_kw)
 
-                df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
-                df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
-                
-                st.dataframe(df_to_display)
-
-            except (IndexError, KeyError) as e:
-                st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
 
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
@@ -276,6 +259,30 @@ if st.session_state.get('datos_cargados', False):
 
         st.subheader("Tabla Consolidada de Palabras Únicas")
 
+        # --- INICIO DE LA LÓGICA DE FILTROS Y ORDENAMIENTO ---
+        col_f, col_s = st.columns(2)
+        
+        with col_f:
+            opciones_freq = [1, 2, 3, 4, 5]
+            default_index_freq = opciones_freq.index(2)
+            umbral_freq = st.selectbox(
+                "Mostrar si cualquier frecuencia es ≥ a:",
+                opciones_freq,
+                index=default_index_freq
+            )
+        
+        with col_s:
+            opciones_sort = [
+                "Keyword (A-Z)", "Keyword (Z-A)",
+                "Frec. Cliente (Desc)", "Frec. Cliente (Asc)",
+                "Frec. Comp. (Desc)", "Frec. Comp. (Asc)",
+                "Frec. Mining (Desc)", "Frec. Mining (Asc)"
+            ]
+            sort_selection = st.selectbox("Ordenar por:", opciones_sort)
+        # --- FIN DE LÓGICA DE FILTROS Y ORDENAMIENTO ---
+
+
+        # Preparar dataframes
         df_cust = st.session_state.df_cust_unique.iloc[:, [0, 1]].copy()
         df_cust.columns = ['Keyword', 'Frec. Cliente']
 
@@ -285,6 +292,7 @@ if st.session_state.get('datos_cargados', False):
         df_mining = st.session_state.df_mining_unique.iloc[:, [0, 1]].copy()
         df_mining.columns = ['Keyword', 'Frec. Mining']
 
+        # Unir y limpiar
         merged_df = pd.merge(df_cust, df_comp, on='Keyword', how='outer')
         if not df_mining.empty:
             final_df = pd.merge(merged_df, df_mining, on='Keyword', how='outer')
@@ -298,12 +306,20 @@ if st.session_state.get('datos_cargados', False):
                 final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
 
         df_filtered = final_df[~final_df['Keyword'].isin(avoid_list)]
+        df_filtered = df_filtered[df_filtered[freq_cols].ge(umbral_freq).any(axis=1)]
+        
+        # Aplicar ordenamiento
+        sort_map = {
+            "Keyword (A-Z)": ("Keyword", True), "Keyword (Z-A)": ("Keyword", False),
+            "Frec. Cliente (Desc)": ("Frec. Cliente", False), "Frec. Cliente (Asc)": ("Frec. Cliente", True),
+            "Frec. Comp. (Desc)": ("Frec. Comp.", False), "Frec. Comp. (Asc)": ("Frec. Comp.", True),
+            "Frec. Mining (Desc)": ("Frec. Mining", False), "Frec. Mining (Asc)": ("Frec. Mining", True)
+        }
+        sort_by, ascending = sort_map[sort_selection]
+        df_sorted = df_filtered.sort_values(by=sort_by, ascending=ascending)
 
-        filtro_freq = st.checkbox("Ocultar si todas las frecuencias son ≤ 2", value=True, key="freq_consolidada")
-        if filtro_freq:
-            df_filtered = df_filtered[df_filtered[freq_cols].gt(2).any(axis=1)]
 
-        if not df_filtered.empty:
+        if not df_sorted.empty:
             header_cols_spec = [0.5, 2, 1, 1, 1]
             header_cols = st.columns(header_cols_spec)
             header_cols[0].write("**Sel.**")
@@ -313,7 +329,7 @@ if st.session_state.get('datos_cargados', False):
             header_cols[4].write("**Frec. Mining**")
             st.divider()
 
-            for index, row in df_filtered.iterrows():
+            for index, row in df_sorted.iterrows():
                 row_cols = st.columns(header_cols_spec)
                 row_cols[0].checkbox("", key=f"consolidada_cb_{index}")
                 row_cols[1].write(row['Keyword'])
@@ -325,7 +341,7 @@ if st.session_state.get('datos_cargados', False):
 
             if st.button("añadir a Avoids", key="consolidada_add_to_avoids"):
                 palabras_a_anadir = []
-                for index, row in df_filtered.iterrows():
+                for index, row in df_sorted.iterrows():
                     if st.session_state.get(f"consolidada_cb_{index}"):
                         palabras_a_anadir.append(row['Keyword'])
                 
