@@ -22,9 +22,11 @@ def inicializar_datos(archivo_subido):
     try:
         # Pestañas requeridas
         st.session_state.df_asin = pd.read_excel(archivo_subido, sheet_name="CustListing")
-        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW")
+        # --- CORRECCIÓN DE LECTURA ---
+        # Se ajustan todas las tablas de keywords para usar la fila 2 como encabezado (header=1)
+        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
         st.session_state.df_comp = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
-        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", skiprows=2)
+        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
         st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
@@ -114,41 +116,6 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
-        
-        # Preparar y estandarizar cada fuente de datos
-        # Cliente
-        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
-        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
-        df_cust['Source'] = 'Cliente'
-        
-        # Competencia
-        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
-        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
-        df_comp['Source'] = 'Competencia'
-        
-        # Mining
-        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
-        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
-        df_mining['Source'] = 'Mining'
-        
-        # Consolidar todas las tablas
-        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
-        
-        # Reordenar las columnas principales
-        all_cols = df_master.columns.tolist()
-        initial_cols = []
-        if 'Search Terms' in all_cols: initial_cols.append('Search Terms')
-        if 'Source' in all_cols: initial_cols.append('Source')
-        if 'Search Volume' in all_cols: initial_cols.append('Search Volume')
-        
-        other_cols = [col for col in all_cols if col not in initial_cols]
-        new_order = initial_cols + other_cols
-        df_master = df_master[new_order]
-
-        st.dataframe(df_master, height=300)
-
-
     with st.expander("Datos para Análisis", expanded=False):
 
         # DATOS DEL CLIENTE
@@ -184,7 +151,7 @@ if st.session_state.get('datos_cargados', False):
             seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()))
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
-            df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+            df_kw_proc = st.session_state.df_kw.copy()
             df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
 
             df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
@@ -247,25 +214,14 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw
                 
                 try:
-                    col_a = df_mining_proc.columns[0]
-                    col_c = df_mining_proc.columns[2]
-                    col_f = df_mining_proc.columns[5]
-                    col_m = df_mining_proc.columns[12]
-                    col_p = df_mining_proc.columns[15]
-
-                    df_to_display = df_mining_proc[[col_a, col_f, col_p, col_c, col_m]].copy()
-                    df_to_display.columns = ['Search Terms', 'Search Volume', 'Niche Click Share', 'Relevance', 'Niche Product Depth']
-                    
+                    df_to_display = df_mining_proc.copy()
                     df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
                     df_to_display = df_to_display[df_to_display['Relevance'] >= umbral_rel]
-
-                    df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0)
-                    df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
 
                     with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
                         st.dataframe(df_to_display)
 
-                except (IndexError, KeyError) as e:
+                except Exception as e:
                     st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. Error: {e}")
 
         # SECCIÓN DE PALABRAS ÚNICAS
@@ -360,3 +316,33 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
+    
+    with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
+        
+        # Preparar y estandarizar cada fuente de datos
+        df_cust = st.session_state.df_kw.copy()
+        df_cust['Source'] = 'Cliente'
+        df_cust.rename(columns={'Keyword Phrase': 'Search Terms', 'M. Searches': 'Search Volume'}, inplace=True)
+
+        df_comp = st.session_state.df_comp_data.copy()
+        df_comp['Source'] = 'Competencia'
+        df_comp.rename(columns={'Keyword': 'Search Terms', 'Searched / Month': 'Search Volume'}, inplace=True)
+        
+        df_mining = st.session_state.df_mining_kw.copy()
+        df_mining['Source'] = 'Mining'
+        df_mining.rename(columns={'Keyword': 'Search Terms', 'Monthly Searches': 'Search Volume'}, inplace=True)
+        
+        # Consolidar todas las tablas
+        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+        
+        # Reordenar las columnas principales
+        all_cols = df_master.columns.tolist()
+        initial_cols = ['Search Terms', 'Source', 'ASIN Click Share', 'Sample Click Share', 'Niche Click Share', 'Total Click Share']
+        
+        # Filtrar solo las columnas que realmente existen en el dataframe
+        existing_initial_cols = [col for col in initial_cols if col in all_cols]
+        other_cols = [col for col in all_cols if col not in existing_initial_cols]
+        new_order = existing_initial_cols + other_cols
+        df_master = df_master[new_order]
+
+        st.dataframe(df_master, height=300)
