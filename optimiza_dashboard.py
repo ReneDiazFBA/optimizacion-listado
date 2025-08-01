@@ -20,13 +20,9 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
         st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
 
-        # CustKW → Lee desde fila 2 como headers reales
         st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
-
-        # CompKW → Lee desde fila 2 como headers reales
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
 
-        # MiningKW → Lee desde fila 2 como headers reales
         xls = pd.ExcelFile(archivo_subido)
         if 'MiningKW' in xls.sheet_names:
             mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
@@ -58,39 +54,41 @@ if archivo:
         inicializar_datos(archivo)
 
 if st.session_state.get('datos_cargados', False):
-    with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
-        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
-        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
-        df_cust['Source'] = 'Cliente'
+    st.subheader("Tabla Consolidada de Search Terms (Cliente + Competencia + Mining)")
 
-        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
-        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
-        df_comp['Source'] = 'Competencia'
+    # Preparar CustKW
+    df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+    df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
 
-        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
-        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
-        df_mining['Source'] = 'Mining'
+    # Preparar CompKW
+    df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+    df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
 
-        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+    # Preparar MiningKW
+    df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+    df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
 
-        numeric_cols = ['Search Volume', 'ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share', 'Sample Product Depth', 'Niche Product Depth', 'Relevance']
-        for col in numeric_cols:
-            if col in df_master.columns:
-                df_master[col] = pd.to_numeric(df_master[col], errors='coerce')
+    # Consolidar todo en una sola tabla
+    df_all = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
 
-        percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
-        for col in percent_cols:
-            if col in df_master.columns:
-                mask = df_master[col].notna()
-                df_master.loc[mask, col] = (df_master.loc[mask, col] * 100).round(2).astype(str) + '%'
+    # Consolidar duplicados por Search Terms
+    df_consolidated = df_all.groupby('Search Terms').agg({
+        'ASIN Click Share': 'first',
+        'Sample Click Share': 'first',
+        'Total Click Share': 'first',
+        'Niche Click Share': 'first',
+        'Sample Product Depth': 'first',
+        'Niche Product Depth': 'first',
+        'Relevance': 'first',
+        'Search Volume': 'max',  # Usamos el volumen más alto disponible
+    }).reset_index()
 
-        column_order = [
-            'Search Terms', 'Source', 'Search Volume', 
-            'ASIN Click Share', 'Sample Click Share', 'Niche Click Share', 'Total Click Share',
-            'Sample Product Depth', 'Niche Product Depth', 'Relevance'
-        ]
-        existing_cols = [col for col in column_order if col in df_master.columns]
-        df_master = df_master[existing_cols].fillna('N/A')
+    # Formatear porcentajes
+    percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
+    for col in percent_cols:
+        if col in df_consolidated.columns:
+            df_consolidated[col] = pd.to_numeric(df_consolidated[col], errors='coerce') * 100
+            df_consolidated[col] = df_consolidated[col].round(2).astype(str) + '%'
 
-        st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master, height=300)
+    st.metric("Total de Términos Consolidado", len(df_consolidated))
+    st.dataframe(df_consolidated, height=500)
