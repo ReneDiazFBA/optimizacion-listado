@@ -214,13 +214,13 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw.copy()
                 
                 try:
-                    df_mining_proc.rename(columns={
+                    df_mining_proc = df_mining_proc.rename(columns={
                         df_mining_proc.columns[0]: 'Search Terms',
                         df_mining_proc.columns[2]: 'Relevance',
                         df_mining_proc.columns[5]: 'Search Volume',
                         df_mining_proc.columns[12]: 'Niche Product Depth',
                         df_mining_proc.columns[15]: 'Niche Click Share'
-                    }, inplace=True)
+                    })
 
                     df_to_display = df_mining_proc.copy()
                     df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
@@ -327,10 +327,10 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-
+    
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
-        # Preparar y estandarizar cada fuente de datos por posición para evitar errores
+        # Preparar y estandarizar cada fuente de datos
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
