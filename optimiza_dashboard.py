@@ -26,9 +26,8 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
-        # --- CORRECCIÓN DE LECTURA DE DATOS ---
         # Se leen las hojas sin encabezado, y luego se asignan manualmente
-        # para evitar errores con columnas duplicadas.
+        # para que los datos empiecen en la fila 3
         cust_kw_raw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None)
         st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
         st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
@@ -157,13 +156,8 @@ if st.session_state.get('datos_cargados', False):
             seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()))
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
-            df_kw_proc = st.session_state.df_kw.copy()
-            df_kw_proc = df_kw_proc.rename(columns={
-                df_kw_proc.columns[0]: "Search Terms",
-                df_kw_proc.columns[1]: "ASIN Click Share",
-                df_kw_proc.columns[15]: "Search Volume",
-                df_kw_proc.columns[25]: "Total Click Share"
-            })
+            df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+            df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
 
             df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
@@ -196,14 +190,8 @@ if st.session_state.get('datos_cargados', False):
             st.subheader("Reverse ASIN Competidores")
             rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1)
             
-            df_comp_data_proc = st.session_state.df_comp_data.copy()
-            df_comp_data_proc = df_comp_data_proc.rename(columns={
-                df_comp_data_proc.columns[0]: "Search Terms",
-                df_comp_data_proc.columns[2]: "Sample Click Share",
-                df_comp_data_proc.columns[5]: "Sample Product Depth",
-                df_comp_data_proc.columns[8]: "Search Volume",
-                df_comp_data_proc.columns[18]: "Niche Click Share"
-            })
+            df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+            df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
             
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
             
@@ -232,13 +220,13 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw.copy()
                 
                 try:
-                    df_mining_proc = df_mining_proc.rename(columns={
+                    df_mining_proc.rename(columns={
                         df_mining_proc.columns[0]: 'Search Terms',
                         df_mining_proc.columns[2]: 'Relevance',
                         df_mining_proc.columns[5]: 'Search Volume',
                         df_mining_proc.columns[12]: 'Niche Product Depth',
                         df_mining_proc.columns[15]: 'Niche Click Share'
-                    })
+                    }, inplace=True)
 
                     df_to_display = df_mining_proc.copy()
                     df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
