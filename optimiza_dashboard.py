@@ -113,19 +113,128 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
+    # --- INICIO DE LA CORRECCIÓN ---
+    # Se restauró el contenido de las siguientes dos secciones
+    
     # DATOS DEL CLIENTE
     with st.expander("Datos del cliente", expanded=False):
-        # ... (código sin cambios)
-    
+        st.subheader("Listado de ASINs")
+        for index, row in st.session_state.df_asin.iterrows():
+            try:
+                marketplace = row.iloc[0]
+                asin = row.iloc[1]
+                titulo = row.iloc[2]
+                bullets = row.iloc[3]
+                descripcion_raw = row.iloc[4]
+
+                if pd.isna(descripcion_raw) or str(descripcion_raw).strip() == "":
+                    descripcion = "Este ASIN tiene contenido A+"
+                else:
+                    descripcion = descripcion_raw
+
+                with st.expander(f"ASIN: {asin}"):
+                    st.markdown(f"**Marketplace:** {marketplace}")
+                    st.markdown("**Título del producto:**")
+                    st.write(titulo)
+                    st.markdown("**Puntos clave:**")
+                    st.write(bullets)
+                    st.markdown("**Descripción:**")
+                    st.write(descripcion)
+            except IndexError:
+                st.warning(f"Se omitió la fila {index+1} de la pestaña 'CustListing' por no tener el formato esperado.")
+                continue
+        
+        st.divider()
+
+        st.subheader("Palabras Clave (Keywords)")
+        opciones = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
+        seleccion = st.selectbox("Filtrar por porcentaje de clics:", list(opciones.keys()))
+        umbral = opciones[seleccion]
+        
+        df_kw_copy = st.session_state.df_kw.iloc[:, [0, 1, 15]].copy()
+        df_kw_copy.columns = ["Keyword", "Click Share", "M. Searches"]
+
+        df_kw_copy["Click Share"] = pd.to_numeric(df_kw_copy["Click Share"], errors="coerce")
+        df_kw_filtrado = df_kw_copy[df_kw_copy["Click Share"].fillna(0) > umbral]
+        df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
+        df_kw_filtrado["M. Searches"] = pd.to_numeric(df_kw_filtrado["M. Searches"], errors="coerce").fillna(0).astype(int)
+        
+        columnas_a_mostrar = ["Keyword", "M. Searches", "Click Share"]
+        
+        with st.expander("Ver/Ocultar Keywords del Cliente", expanded=True):
+            st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            st.dataframe(df_kw_filtrado[columnas_a_mostrar].reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
+            st.markdown("</div>", unsafe_allow_html=True)
+
     # DATOS DE COMPETIDORES
     with st.expander("Datos de competidores", expanded=False):
-        # ... (código sin cambios)
+        st.subheader("ASIN de competidores")
+        with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
+            asin_raw = str(st.session_state.df_comp.iloc[0, 0])
+            
+            start_index = asin_raw.find('B0')
+            if start_index != -1:
+                clean_string_block = asin_raw[start_index:]
+            else:
+                clean_string_block = asin_raw
+
+            dirty_asin_list = clean_string_block.split(',')
+            
+            clean_asin_list = []
+            for asin in dirty_asin_list:
+                clean_asin = asin.split('-')[0].strip()
+                if clean_asin:
+                    clean_asin_list.append(clean_asin)
+
+            df_asin_comp = pd.DataFrame({"ASIN de competidor": clean_asin_list})
+            st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            st.dataframe(df_asin_comp.style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        st.subheader("Keywords por ranking de competidor")
+        rango = st.selectbox("Mostrar keywords con ranking mayor a:", [4, 5, 6], index=1)
+        df_comp_data_copy = st.session_state.df_comp_data.copy()
+        df_comp_data_copy.replace(r'^\s*$', pd.NA, regex=True, inplace=True)
+        cols = df_comp_data_copy.iloc[:, [0, 5, 8, 18]].copy()
+        
+        cols.columns = ["Palabra clave", "Cmp. Depth", "Impresiones", "Click Share"]
+        cols = cols.dropna()
+        
+        cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
+        cols['Click Share'] = pd.to_numeric(cols['Click Share'], errors='coerce').fillna(0)
+        cols['Click Share'] = cols['Click Share'].round(2).astype(str) + '%'
+        cols['Cmp. Depth'] = pd.to_numeric(cols['Cmp. Depth'], errors='coerce')
+        cols = cols[cols["Cmp. Depth"].notna() & (cols["Cmp. Depth"] > rango)]
+
+        with st.expander("Ver/Ocultar Keywords de Competidores por Ranking", expanded=True):
+            st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
+            st.dataframe(cols.reset_index(drop=True).style.set_properties(**{"white-space": "normal", "word-wrap": "break-word"}))
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- FIN DE LA CORRECCIÓN ---
 
     # DATOS DE MINERÍA (Solo se mostrará si la pestaña existe en el Excel)
     if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
         with st.expander("Minería de Datos", expanded=False):
-            # ... (código sin cambios)
             
+            st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
+            st.divider()
+
+            df_mining = st.session_state.df_mining_kw
+            
+            try:
+                col_a_name = df_mining.columns[0]
+                col_c_name = df_mining.columns[2]
+                col_f_name = df_mining.columns[5]
+
+                df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
+                df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
+                
+                st.dataframe(df_to_display)
+
+            except (IndexError, KeyError) as e:
+                st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
+
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
         
@@ -135,15 +244,38 @@ if st.session_state.get('datos_cargados', False):
 
         st.subheader("Palabras en lista de exclusión ('Avoids')")
         with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
-            # ... (código sin cambios)
+            col1, col2, col3 = st.columns(3)
+            avoids_df = st.session_state.avoids_df
+            avoid_column_names = avoids_df.columns.tolist()
+            
+            col_map = {col1: avoid_column_names[0], col2: avoid_column_names[1], col3: avoid_column_names[2]}
+
+            for col_widget, col_name in col_map.items():
+                with col_widget:
+                    st.markdown(f"**{col_name}**")
+                    for index, word in avoids_df[col_name].dropna().items():
+                        st.checkbox(label=str(word), key=f"del_avoid_{col_name}_{index}")
+            
+            st.divider()
+            if st.button("Eliminar seleccionados de la lista", key="delete_avoids"):
+                palabras_eliminadas = False
+                for col_name in avoid_column_names:
+                    for index, word in avoids_df[col_name].dropna().items():
+                        if st.session_state.get(f"del_avoid_{col_name}_{index}"):
+                            st.session_state.avoids_df.loc[index, col_name] = pd.NA
+                            palabras_eliminadas = True
+                
+                if palabras_eliminadas:
+                    st.success("Palabras eliminadas correctamente.")
+                    st.rerun()
+                else:
+                    st.warning("No has seleccionado ninguna palabra para eliminar.")
 
         avoid_list = pd.concat([st.session_state.avoids_df[col] for col in st.session_state.avoids_df.columns]).dropna().unique().tolist()
         st.divider()
 
-        # --- INICIO DE LA NUEVA TABLA CONSOLIDADA ---
         st.subheader("Tabla Consolidada de Palabras Únicas")
 
-        # Preparar dataframes individuales
         df_cust = st.session_state.df_cust_unique.iloc[:, [0, 1]].copy()
         df_cust.columns = ['Keyword', 'Frec. Cliente']
 
@@ -153,32 +285,25 @@ if st.session_state.get('datos_cargados', False):
         df_mining = st.session_state.df_mining_unique.iloc[:, [0, 1]].copy()
         df_mining.columns = ['Keyword', 'Frec. Mining']
 
-        # Unir los dataframes
         merged_df = pd.merge(df_cust, df_comp, on='Keyword', how='outer')
         if not df_mining.empty:
             final_df = pd.merge(merged_df, df_mining, on='Keyword', how='outer')
         else:
             final_df = merged_df
-            final_df['Frec. Mining'] = 0 # Añadir columna si no existe
+            final_df['Frec. Mining'] = 0
 
-        # Limpiar y formatear
         freq_cols = ['Frec. Cliente', 'Frec. Comp.', 'Frec. Mining']
         for col in freq_cols:
             if col in final_df.columns:
                 final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
 
-        # Filtrar por lista de avoids
         df_filtered = final_df[~final_df['Keyword'].isin(avoid_list)]
 
-        # Filtro de frecuencia
         filtro_freq = st.checkbox("Ocultar si todas las frecuencias son ≤ 2", value=True, key="freq_consolidada")
         if filtro_freq:
-            # Mantener la fila si CUALQUIER columna de frecuencia es > 2
             df_filtered = df_filtered[df_filtered[freq_cols].gt(2).any(axis=1)]
 
-        # Mostrar tabla interactiva
         if not df_filtered.empty:
-            # Encabezados
             header_cols_spec = [0.5, 2, 1, 1, 1]
             header_cols = st.columns(header_cols_spec)
             header_cols[0].write("**Sel.**")
@@ -188,10 +313,8 @@ if st.session_state.get('datos_cargados', False):
             header_cols[4].write("**Frec. Mining**")
             st.divider()
 
-            # Filas con checkboxes
             for index, row in df_filtered.iterrows():
                 row_cols = st.columns(header_cols_spec)
-                # Usamos el índice original del dataframe para una clave única
                 row_cols[0].checkbox("", key=f"consolidada_cb_{index}")
                 row_cols[1].write(row['Keyword'])
                 row_cols[2].write(str(row['Frec. Cliente']))
@@ -200,7 +323,6 @@ if st.session_state.get('datos_cargados', False):
 
             st.divider()
 
-            # Botón para añadir a Avoids
             if st.button("añadir a Avoids", key="consolidada_add_to_avoids"):
                 palabras_a_anadir = []
                 for index, row in df_filtered.iterrows():
@@ -215,4 +337,3 @@ if st.session_state.get('datos_cargados', False):
                     st.warning("No has seleccionado ninguna palabra.")
         else:
             st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-        # --- FIN DE LA NUEVA TABLA CONSOLIDADA ---
