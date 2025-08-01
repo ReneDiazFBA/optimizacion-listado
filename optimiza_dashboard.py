@@ -345,6 +345,6 @@ if st.session_state.get('datos_cargados', False):
             st.metric("Registros Encontrados", len(df_filtrado_vol))
             
         result_df = df_filtrado_vol[['Keyword', 'Volumen (Más Alto)']]
-        result_df.columns = ['Search Term', 'Volumen (Más Alto)']
+        result_df.columns = ['Search Terms', 'Search Volume']
         
         st.dataframe(result_df.reset_index(drop=True))
