@@ -196,18 +196,14 @@ if st.session_state.get('datos_cargados', False):
         df_comp_data_copy.replace(r'^\s*$', pd.NA, regex=True, inplace=True)
         cols = df_comp_data_copy.iloc[:, [0, 5, 8, 18]].copy()
         
-        # --- INICIO DE LA CORRECCIÓN ---
-        # Mapeo y renombrado de columnas
         cols.columns = ["Palabra clave", "Cmp. Depth", "Impresiones", "Click Share"]
         cols = cols.dropna()
         
-        # Formato de columnas usando los nuevos nombres
         cols['Impresiones'] = pd.to_numeric(cols['Impresiones'], errors='coerce').fillna(0).astype(int)
         cols['Click Share'] = pd.to_numeric(cols['Click Share'], errors='coerce').fillna(0)
         cols['Click Share'] = cols['Click Share'].round(2).astype(str) + '%'
         cols['Cmp. Depth'] = pd.to_numeric(cols['Cmp. Depth'], errors='coerce')
         cols = cols[cols["Cmp. Depth"].notna() & (cols["Cmp. Depth"] > rango)]
-        # --- FIN DE LA CORRECCIÓN ---
 
         with st.expander("Ver/Ocultar Keywords de Competidores por Ranking", expanded=True):
             st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
@@ -219,6 +215,18 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Minería de Datos", expanded=False):
             
             st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
+            
+            # --- INICIO DE LA CORRECCIÓN ---
+            opciones_relevancia_display = ["10%", "20%", "30%", "50%"]
+            opciones_relevancia_map = {"10%": 10, "20%": 20, "30%": 30, "50%": 50}
+            default_index = opciones_relevancia_display.index("30%")
+            
+            seleccion_relevancia = st.selectbox(
+                "Filtrar por relevancia mayor o igual a:",
+                opciones_relevancia_display,
+                index=default_index
+            )
+            umbral_relevancia = opciones_relevancia_map[seleccion_relevancia]
             st.divider()
 
             df_mining = st.session_state.df_mining_kw
@@ -231,10 +239,21 @@ if st.session_state.get('datos_cargados', False):
                 df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
                 df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
                 
-                st.dataframe(df_to_display)
+                # Convertir Relevancia a numérico para poder filtrar
+                df_to_display['Relevancia'] = pd.to_numeric(df_to_display['Relevancia'], errors='coerce').fillna(0)
+                
+                # Aplicar el filtro
+                df_filtrado = df_to_display[df_to_display['Relevancia'] >= umbral_relevancia].copy()
+                
+                # Formatear la columna a entero para la visualización (sin decimales)
+                df_filtrado['Relevancia'] = df_filtrado['Relevancia'].astype(int)
+
+                st.dataframe(df_filtrado)
 
             except (IndexError, KeyError) as e:
                 st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
+            # --- FIN DE LA CORRECCIÓN ---
+
 
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
