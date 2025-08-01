@@ -214,11 +214,9 @@ if st.session_state.get('datos_cargados', False):
             tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
             df_kw_filtrado.loc[:, "Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
             
-            # --- INICIO DE LA CORRECCIÓN ---
             column_order = ["Search Terms", "Search Volume", "Click Share", "Total Click Share"]
             df_kw_filtrado = df_kw_filtrado[column_order]
-            # --- FIN DE LA CORRECCIÓN ---
-
+            
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
                 st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
 
@@ -237,22 +235,23 @@ if st.session_state.get('datos_cargados', False):
             st.subheader("Reverse ASIN")
             rango = st.selectbox("Mostrar terminos con ranking mayor a:", [4, 5, 6], index=1)
             
+            # --- INICIO DE LA CORRECCIÓN ---
             df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
-            df_comp_data_proc.columns = ["Search Terms", "Click Share", "Rank Depth", "Search Volume", "Total Click Share"]
+            df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Rank Depth", "Search Volume", "Niche Click Share"]
+            # --- FIN DE LA CORRECCIÓN ---
+            
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
             
             df_comp_data_proc['Search Volume'] = pd.to_numeric(df_comp_data_proc['Search Volume'], errors='coerce').fillna(0).astype(int)
-            df_comp_data_proc['Click Share'] = pd.to_numeric(df_comp_data_proc['Click Share'], errors='coerce').fillna(0)
-            df_comp_data_proc['Click Share'] = (df_comp_data_proc['Click Share'] * 100).round(2).astype(str) + '%'
-            df_comp_data_proc['Total Click Share'] = pd.to_numeric(df_comp_data_proc['Total Click Share'], errors='coerce').fillna(0)
-            df_comp_data_proc['Total Click Share'] = (df_comp_data_proc['Total Click Share'] * 100).round(2).astype(str) + '%'
+            df_comp_data_proc['Sample Click Share'] = pd.to_numeric(df_comp_data_proc['Sample Click Share'], errors='coerce').fillna(0)
+            df_comp_data_proc['Sample Click Share'] = (df_comp_data_proc['Sample Click Share'] * 100).round(2).astype(str) + '%'
+            df_comp_data_proc['Niche Click Share'] = pd.to_numeric(df_comp_data_proc['Niche Click Share'], errors='coerce').fillna(0)
+            df_comp_data_proc['Niche Click Share'] = (df_comp_data_proc['Niche Click Share'] * 100).round(2).astype(str) + '%'
             df_comp_data_proc['Rank Depth'] = pd.to_numeric(df_comp_data_proc['Rank Depth'], errors='coerce')
             df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Rank Depth"].notna() & (df_comp_data_proc["Rank Depth"] > rango)]
 
-            # --- INICIO DE LA CORRECCIÓN ---
-            column_order_comp = ["Search Terms", "Search Volume", "Click Share", "Total Click Share", "Rank Depth"]
+            column_order_comp = ["Search Terms", "Search Volume", "Sample Click Share", "Niche Click Share", "Rank Depth"]
             df_comp_data_proc = df_comp_data_proc[column_order_comp]
-            # --- FIN DE LA CORRECCIÓN ---
 
             with st.expander("Ver/Ocultar Reverse ASIN", expanded=True):
                 st.dataframe(df_comp_data_proc.reset_index(drop=True), height=400)
@@ -265,11 +264,20 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw
                 
                 try:
-                    col_a = df_mining_proc.columns[0]
-                    col_c = df_mining_proc.columns[2]
-                    col_f = df_mining_proc.columns[5]
-                    df_to_display = df_mining_proc[[col_a, col_f, col_c]].copy()
-                    df_to_display.columns = ['Search Terms', 'Search Volume', 'Relevance']
+                    # --- INICIO DE LA CORRECCIÓN ---
+                    col_a = df_mining_proc.columns[0]  # Keywords
+                    col_c = df_mining_proc.columns[2]  # Relevancy
+                    col_f = df_mining_proc.columns[5]  # Monthly Searches
+                    col_m = df_mining_proc.columns[12] # Niche Product Depth
+                    col_p = df_mining_proc.columns[15] # Niche Click Share
+
+                    df_to_display = df_mining_proc[[col_a, col_f, col_c, col_p, col_m]].copy()
+                    df_to_display.columns = ['Search Terms', 'Search Volume', 'Relevance', 'Niche Click Share', 'Niche Product Depth']
+                    
+                    df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0)
+                    df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
+                    # --- FIN DE LA CORRECCIÓN ---
+
                     st.dataframe(df_to_display)
                 except (IndexError, KeyError) as e:
                     st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. Error: {e}")
