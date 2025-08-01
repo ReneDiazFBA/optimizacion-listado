@@ -216,7 +216,6 @@ if st.session_state.get('datos_cargados', False):
             
             st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
             
-            # --- INICIO DE LA CORRECCIÓN ---
             opciones_relevancia_display = ["10%", "20%", "30%", "50%"]
             opciones_relevancia_map = {"10%": 10, "20%": 20, "30%": 30, "50%": 50}
             default_index = opciones_relevancia_display.index("30%")
@@ -239,20 +238,19 @@ if st.session_state.get('datos_cargados', False):
                 df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
                 df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
                 
-                # Convertir Relevancia a numérico para poder filtrar
                 df_to_display['Relevancia'] = pd.to_numeric(df_to_display['Relevancia'], errors='coerce').fillna(0)
                 
-                # Aplicar el filtro
                 df_filtrado = df_to_display[df_to_display['Relevancia'] >= umbral_relevancia].copy()
                 
-                # Formatear la columna a entero para la visualización (sin decimales)
-                df_filtrado['Relevancia'] = df_filtrado['Relevancia'].astype(int)
+                # --- INICIO DE LA CORRECCIÓN ---
+                # Formatear la columna a entero, luego a texto y añadir '%'
+                df_filtrado['Relevancia'] = df_filtrado['Relevancia'].astype(int).astype(str) + '%'
+                # --- FIN DE LA CORRECCIÓN ---
 
                 st.dataframe(df_filtrado)
 
             except (IndexError, KeyError) as e:
                 st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
-            # --- FIN DE LA CORRECCIÓN ---
 
 
     # SECCIÓN DE PALABRAS ÚNICAS
