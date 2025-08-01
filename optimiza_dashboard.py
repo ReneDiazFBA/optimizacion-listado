@@ -214,6 +214,11 @@ if st.session_state.get('datos_cargados', False):
             tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
             df_kw_filtrado.loc[:, "Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
             
+            # --- INICIO DE LA CORRECCIÓN ---
+            column_order = ["Search Terms", "Search Volume", "Click Share", "Total Click Share"]
+            df_kw_filtrado = df_kw_filtrado[column_order]
+            # --- FIN DE LA CORRECCIÓN ---
+
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
                 st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
 
@@ -231,6 +236,7 @@ if st.session_state.get('datos_cargados', False):
 
             st.subheader("Reverse ASIN")
             rango = st.selectbox("Mostrar terminos con ranking mayor a:", [4, 5, 6], index=1)
+            
             df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
             df_comp_data_proc.columns = ["Search Terms", "Click Share", "Rank Depth", "Search Volume", "Total Click Share"]
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
@@ -242,6 +248,11 @@ if st.session_state.get('datos_cargados', False):
             df_comp_data_proc['Total Click Share'] = (df_comp_data_proc['Total Click Share'] * 100).round(2).astype(str) + '%'
             df_comp_data_proc['Rank Depth'] = pd.to_numeric(df_comp_data_proc['Rank Depth'], errors='coerce')
             df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Rank Depth"].notna() & (df_comp_data_proc["Rank Depth"] > rango)]
+
+            # --- INICIO DE LA CORRECCIÓN ---
+            column_order_comp = ["Search Terms", "Search Volume", "Click Share", "Total Click Share", "Rank Depth"]
+            df_comp_data_proc = df_comp_data_proc[column_order_comp]
+            # --- FIN DE LA CORRECCIÓN ---
 
             with st.expander("Ver/Ocultar Reverse ASIN", expanded=True):
                 st.dataframe(df_comp_data_proc.reset_index(drop=True), height=400)
