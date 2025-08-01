@@ -104,14 +104,14 @@ def mostrar_pagina_categorizacion():
 
 def mostrar_histogramas(df):
     """Muestra histogramas para las métricas clave del dataframe filtrado."""
-    st.subheader("Distribución de Métricas Normalizadas")
+    st.subheader("Distribución de Métricas (Escala Logarítmica)")
 
     metric_map = {
-        'Norm_SV': 'Search Volume',
-        'Norm_CS_Cliente': 'Click Share (Cliente)',
-        'Norm_Rank_Depth': 'Rank Depth',
-        'Norm_TCS': 'Total Click Share',
-        'Norm_Relevance': 'Relevance'
+        'Search Volume': 'Search Volume',
+        'CS_Cliente_Num': 'Click Share (Cliente)',
+        'Rank_Depth_Num': 'Rank Depth',
+        'TCS_Num': 'Total Click Share',
+        'Relevance_Num': 'Relevance'
     }
     
     col_keys = list(metric_map.keys())
@@ -123,26 +123,35 @@ def mostrar_histogramas(df):
             with cols[0]:
                 display_name = metric_map[metric_col]
                 st.markdown(f"###### {display_name}")
-                data_series = df[metric_col].dropna()
+                data_series = df[metric_col][df[metric_col] > 0].dropna()
                 if not data_series.empty:
                     fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black', range=(0,1))
-                    ax.set_xlabel("Valor Normalizado (0 a 1)")
+                    ax.hist(data_series, bins=20, edgecolor='black')
+                    ax.set_xscale('log')
+                    ax.set_title(f'Distribución de {display_name}')
+                    ax.set_xlabel(f"{display_name} (Escala Log)")
                     ax.set_ylabel('Frecuencia')
                     st.pyplot(fig)
-        
+                else:
+                    st.write(f"No hay datos positivos para graficar para {display_name}.")
+
         if i + 1 < len(col_keys):
             metric_col = col_keys[i+1]
             with cols[1]:
                 display_name = metric_map[metric_col]
                 st.markdown(f"###### {display_name}")
-                data_series = df[metric_col].dropna()
+                data_series = df[metric_col][df[metric_col] > 0].dropna()
                 if not data_series.empty:
                     fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black', range=(0,1))
-                    ax.set_xlabel("Valor Normalizado (0 a 1)")
+                    ax.hist(data_series, bins=20, edgecolor='black')
+                    ax.set_xscale('log')
+                    ax.set_title(f'Distribución de {display_name}')
+                    ax.set_xlabel(f"{display_name} (Escala Log)")
                     ax.set_ylabel('Frecuencia')
                     st.pyplot(fig)
+                else:
+                    st.write(f"No hay datos positivos para graficar para {display_name}.")
+
 
 # --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
@@ -199,12 +208,12 @@ if st.session_state.get('datos_cargados', False):
             df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks].copy()
             
-            # --- INICIO DE LA CORRECCIÓN ---
             df_kw_filtrado.loc[:, "Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
             df_kw_filtrado.loc[:, "Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
             
-            df_kw_filtrado.loc[:, "Total Click Share"] = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
-            df_kw_filtrado.loc[:, "Total Click Share"] = (df_kw_filtrado["Total Click Share"] * 100).round(2).astype(str) + '%'
+            # --- INICIO DE LA CORRECCIÓN ---
+            tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
+            df_kw_filtrado.loc[:, "Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
             # --- FIN DE LA CORRECCIÓN ---
             
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
