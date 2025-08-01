@@ -26,19 +26,26 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
-        # Se ajustan todas las tablas de keywords para usar la fila 2 como encabezado (header=1)
-        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
-        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
+        # --- CORRECCIÓN DE LECTURA DE DATOS ---
+        # Se leen las hojas sin encabezado, y luego se asignan manualmente
+        # para evitar errores con columnas duplicadas.
+        cust_kw_raw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None)
+        st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
+        st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
+
+        comp_kw_raw = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
+        st.session_state.df_comp_data = comp_kw_raw.iloc[2:].copy()
+        st.session_state.df_comp_data.columns = comp_kw_raw.iloc[1]
         
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
         
         if 'MiningKW' in xls.sheet_names:
-            title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
-            title_string = title_df.iloc[0, 0] if not title_df.empty else ""
+            mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
+            title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
-            
-            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=1, engine='openpyxl')
+            st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
+            st.session_state.df_mining_kw.columns = mining_kw_raw.iloc[1]
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
             st.session_state.mining_title = ""
@@ -327,7 +334,7 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-
+    
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
         # Preparar y estandarizar cada fuente de datos por posición
