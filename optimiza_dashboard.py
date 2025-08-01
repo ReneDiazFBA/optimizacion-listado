@@ -119,8 +119,8 @@ if st.session_state.get('datos_cargados', False):
         df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
         df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
 
-        df_comp_sv = st.session_state.df_comp_data.iloc[:, [8, 0]].copy() # Columna I (Impresiones), Columna A (Keyword)
-        df_comp_sv.columns = ['Volumen Competidor', 'Keyword']
+        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
+        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
         
         df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
         df_mining_sv.columns = ['Keyword', 'Volumen Mining']
@@ -134,12 +134,11 @@ if st.session_state.get('datos_cargados', False):
 
         final_df['Volumen (Más Alto)'] = final_df[sv_cols].max(axis=1)
         
-        # Filtro de volumen
-        f_col, _ = st.columns([1, 2])
+        f_col, m_col = st.columns([1, 2])
         with f_col:
             opciones_volumen = ['Mostrar Todos', 'No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
             seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
-            
+        
         df_filtrado_vol = final_df.copy()
         if seleccion_volumen == 'No mostrar Ceros':
             df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] > 0]
@@ -148,16 +147,20 @@ if st.session_state.get('datos_cargados', False):
         elif seleccion_volumen != 'Mostrar Todos':
             umbral = int(seleccion_volumen.replace('>= ', ''))
             df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] >= umbral]
-
+        
+        with m_col:
+            st.metric("Registros Encontrados", len(df_filtrado_vol))
+            
         result_df = df_filtrado_vol[['Keyword', 'Volumen (Más Alto)']]
         result_df.columns = ['Search Term', 'Volumen (Más Alto)']
         
-        st.info(f"Mostrando {len(result_df)} registros")
         st.dataframe(result_df.reset_index(drop=True))
 
 
     with st.expander("Datos para Análisis", expanded=False):
 
+        # --- INICIO DE LA CORRECCIÓN ---
+        # Se restauró el contenido completo de todas las subsecciones
         # DATOS DEL CLIENTE
         with st.expander("Datos del cliente", expanded=False):
             st.subheader("Listing de ASIN")
@@ -262,7 +265,32 @@ if st.session_state.get('datos_cargados', False):
 
             st.subheader("Palabras en lista de exclusión ('Avoids')")
             with st.expander("Ver/Ocultar Listas de Exclusión", expanded=True):
-                # ... (código sin cambios)
+                col1, col2, col3 = st.columns(3)
+                avoids_df = st.session_state.avoids_df
+                avoid_column_names = avoids_df.columns.tolist()
+                
+                col_map = {col1: avoid_column_names[0], col2: avoid_column_names[1], col3: avoid_column_names[2]}
+
+                for col_widget, col_name in col_map.items():
+                    with col_widget:
+                        st.markdown(f"**{col_name}**")
+                        for index, word in avoids_df[col_name].dropna().items():
+                            st.checkbox(label=str(word), key=f"del_avoid_{col_name}_{index}")
+                
+                st.divider()
+                if st.button("Eliminar seleccionados de la lista", key="delete_avoids"):
+                    palabras_eliminadas = False
+                    for col_name in avoid_column_names:
+                        for index, word in avoids_df[col_name].dropna().items():
+                            if st.session_state.get(f"del_avoid_{col_name}_{index}"):
+                                st.session_state.avoids_df.loc[index, col_name] = pd.NA
+                                palabras_eliminadas = True
+                    
+                    if palabras_eliminadas:
+                        st.success("Palabras eliminadas correctamente.")
+                        st.rerun()
+                    else:
+                        st.warning("No has seleccionado ninguna palabra para eliminar.")
 
             avoid_list = pd.concat([st.session_state.avoids_df[col] for col in st.session_state.avoids_df.columns]).dropna().unique().tolist()
             st.divider()
@@ -323,3 +351,4 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra.")
             else:
                 st.write("No hay palabras únicas para mostrar con los filtros actuales.")
+    # --- FIN DE LA CORRECCIÓN ---
