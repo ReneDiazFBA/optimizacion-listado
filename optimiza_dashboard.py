@@ -135,7 +135,7 @@ if st.session_state.get('datos_cargados', False):
         df_mining_rel = st.session_state.df_mining_kw.iloc[:, [0, 2]].copy()
         df_mining_rel.columns = ['Keyword', 'Relevance']
 
-        # Unir todas las tablas en una tabla final
+        # Unir todas las tablas
         merged1 = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
         merged2 = pd.merge(merged1, df_mining_sv, on='Keyword', how='outer')
         merged3 = pd.merge(merged2, df_cust_cs, on='Keyword', how='left')
@@ -148,61 +148,26 @@ if st.session_state.get('datos_cargados', False):
             final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
         final_df['Search Volume'] = final_df[sv_cols].max(axis=1)
         
-        # UI para FODA
-        st.subheader("Definir Criterios para FODA: Fortaleza Alta")
-        c1, c2, c3, c4, c5 = st.columns(5)
-        with c1:
-            umbral_sv = st.number_input("Search Volume ≥", value=1000)
-        with c2:
-            umbral_cs_cliente = st.number_input("Click Share Cliente (%) ≥", value=10.0, step=0.1)
-        with c3:
-            umbral_rank_depth = st.number_input("Rank Depth ≤", value=15)
-        with c4:
-            umbral_tcs = st.number_input("Total Click Share (%) ≥", value=10.0, step=0.1)
-        with c5:
-            umbral_relevance = st.number_input("Relevance ≥", value=8)
-        
-        # Crear columnas numéricas temporales limpias para la comparación
-        final_df['FODA'] = ''
-        final_df['CS_Cliente_Num'] = pd.to_numeric(final_df['Click Share (Cliente)'], errors='coerce') * 100
-        final_df['Rank_Depth_Num'] = pd.to_numeric(final_df['Rank Depth'], errors='coerce')
-        final_df['TCS_Num'] = pd.to_numeric(final_df['Total Click Share'], errors='coerce') * 100
-        final_df['Relevance_Num'] = pd.to_numeric(final_df['Relevance'], errors='coerce')
-
-        mask_fortaleza = (
-            (final_df['Search Volume'] >= umbral_sv) &
-            (final_df['CS_Cliente_Num'] >= umbral_cs_cliente) &
-            (final_df['Rank_Depth_Num'] <= umbral_rank_depth) &
-            (final_df['TCS_Num'] >= umbral_tcs) &
-            (final_df['Relevance_Num'] >= umbral_relevance)
-        )
-        final_df.loc[mask_fortaleza, 'FODA'] = 'Fortaleza Alta'
-
-        # --- INICIO DE LA CORRECCIÓN DE FORMATO ---
-        # Click Share (Cliente)
+        # Formatear columnas para visualización de forma segura
         final_df['Click Share (Cliente)'] = pd.to_numeric(final_df['Click Share (Cliente)'], errors='coerce')
         mask = final_df['Click Share (Cliente)'].notna()
         final_df.loc[mask, 'Click Share (Cliente)'] = (final_df.loc[mask, 'Click Share (Cliente)'] * 100).round(2).astype(str) + '%'
         final_df['Click Share (Cliente)'].fillna("N/A", inplace=True)
         
-        # Rank Depth
         final_df['Rank Depth'] = pd.to_numeric(final_df['Rank Depth'], errors='coerce')
         mask = final_df['Rank Depth'].notna()
         final_df.loc[mask, 'Rank Depth'] = final_df.loc[mask, 'Rank Depth'].astype(int).astype(str)
         final_df['Rank Depth'].fillna("N/A", inplace=True)
         
-        # Total Click Share
         final_df['Total Click Share'] = pd.to_numeric(final_df['Total Click Share'], errors='coerce')
         mask = final_df['Total Click Share'].notna()
         final_df.loc[mask, 'Total Click Share'] = (final_df.loc[mask, 'Total Click Share'] * 100).round(2).astype(str) + '%'
         final_df['Total Click Share'].fillna("N/A", inplace=True)
         
-        # Relevance
         final_df['Relevance'] = pd.to_numeric(final_df['Relevance'], errors='coerce')
         mask = final_df['Relevance'].notna()
         final_df.loc[mask, 'Relevance'] = final_df.loc[mask, 'Relevance'].astype(int).astype(str)
         final_df['Relevance'].fillna("N/A", inplace=True)
-        # --- FIN DE LA CORRECCIÓN DE FORMATO ---
 
         # Filtros y tabla final
         f_col, m_col = st.columns([1, 2])
@@ -222,9 +187,9 @@ if st.session_state.get('datos_cargados', False):
         with m_col:
             st.metric("Registros Encontrados", len(df_filtrado_vol))
             
-        columnas_finales = ['Keyword', 'Search Volume', 'Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance', 'FODA']
+        columnas_finales = ['Keyword', 'Search Volume', 'Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance']
         result_df = df_filtrado_vol[columnas_finales]
-        result_df.columns = ['Search Terms', 'Search Volume', 'Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance', 'FODA']
+        result_df.columns = ['Search Terms', 'Search Volume', 'Click Share (Cliente)', 'Rank Depth', 'Total Click Share', 'Relevance']
         
         st.dataframe(result_df.reset_index(drop=True))
 
