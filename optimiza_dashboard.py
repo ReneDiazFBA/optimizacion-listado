@@ -195,27 +195,27 @@ if st.session_state.get('datos_cargados', False):
                     st.warning(f"Se omitió la fila {index+1} de la pestaña 'CustListing' por no tener el formato esperado.")
                     continue
             
-            st.subheader("Reverse ASIN (Cliente)")
+            st.subheader("Reverse ASIN del Producto")
             opciones_clicks = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
-            seleccion_clicks = st.selectbox("Filtrar por porcentaje de clics:", list(opciones_clicks.keys()))
+            seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()))
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
             df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
-            df_kw_proc.columns = ["Search Terms", "Click Share", "Search Volume", "Total Click Share"]
+            df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
 
-            df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
-            df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks].copy()
+            df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
+            df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
             
-            df_kw_filtrado.loc[:, "Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
+            df_kw_filtrado.loc[:, "ASIN Click Share"] = (df_kw_filtrado["ASIN Click Share"] * 100).round(2).astype(str) + "%"
             df_kw_filtrado.loc[:, "Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
             
             tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
             df_kw_filtrado.loc[:, "Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
             
-            column_order = ["Search Terms", "Search Volume", "Click Share", "Total Click Share"]
+            column_order = ["Search Terms", "Search Volume", "ASIN Click Share", "Total Click Share"]
             df_kw_filtrado = df_kw_filtrado[column_order]
             
-            with st.expander("Ver/Ocultar Reverse ASIN (Cliente)", expanded=True):
+            with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
                 st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
 
         # DATOS DE COMPETIDORES
@@ -231,7 +231,7 @@ if st.session_state.get('datos_cargados', False):
                 st.dataframe(df_asin_comp)
 
             st.subheader("Reverse ASIN Competidores")
-            rango = st.selectbox("Mostrar terminos con ranking mayor a:", [4, 5, 6], index=1)
+            rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1)
             
             df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
             df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
@@ -256,7 +256,10 @@ if st.session_state.get('datos_cargados', False):
         if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
             with st.expander("Mineria de Search Terms", expanded=False):
                 st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
-                st.divider()
+                
+                opciones_rel = [30, 50]
+                umbral_rel = st.selectbox("Relevance ≥:", opciones_rel)
+
                 df_mining_proc = st.session_state.df_mining_kw
                 
                 try:
@@ -269,6 +272,9 @@ if st.session_state.get('datos_cargados', False):
                     df_to_display = df_mining_proc[[col_a, col_f, col_p, col_c, col_m]].copy()
                     df_to_display.columns = ['Search Terms', 'Search Volume', 'Niche Click Share', 'Relevance', 'Niche Product Depth']
                     
+                    df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
+                    df_to_display = df_to_display[df_to_display['Relevance'] >= umbral_rel]
+
                     df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0)
                     df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
 
@@ -314,14 +320,13 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra para eliminar.")
 
             avoid_list = pd.concat([st.session_state.avoids_df[col] for col in st.session_state.avoids_df.columns]).dropna().unique().tolist()
-            st.divider()
-
+            
             with st.expander("Tabla Consolidada de Palabras Únicas", expanded=True):
                 f_col, _ = st.columns([1, 2])
                 with f_col:
                     opciones_freq = [1, 2, 3, 4, 5]
                     default_index_freq = opciones_freq.index(2)
-                    umbral_freq = st.selectbox("Mostrar si cualquier frecuencia es ≥ a:", opciones_freq, index=default_index_freq)
+                    umbral_freq = st.selectbox("Frecuencia Mínima (cualquier fuente) ≥:", opciones_freq, index=default_index_freq)
                 
                 df_cust_u = st.session_state.df_cust_unique.iloc[:, [0, 1]].copy()
                 df_cust_u.columns = ['Keyword', 'Frec. Cliente']
