@@ -104,14 +104,14 @@ def mostrar_pagina_categorizacion():
 
 def mostrar_histogramas(df):
     """Muestra histogramas para las métricas clave del dataframe filtrado."""
-    st.subheader("Distribución de Métricas (Escala Logarítmica)")
+    st.subheader("Distribución de Métricas Normalizadas")
 
     metric_map = {
-        'Search Volume': 'Search Volume',
-        'CS_Cliente_Num': 'Click Share (Cliente)',
-        'Rank_Depth_Num': 'Rank Depth',
-        'TCS_Num': 'Total Click Share',
-        'Relevance_Num': 'Relevance'
+        'Norm_SV': 'Search Volume',
+        'Norm_CS_Cliente': 'Click Share (Cliente)',
+        'Norm_Rank_Depth': 'Rank Depth',
+        'Norm_TCS': 'Total Click Share',
+        'Norm_Relevance': 'Relevance'
     }
     
     col_keys = list(metric_map.keys())
@@ -123,35 +123,26 @@ def mostrar_histogramas(df):
             with cols[0]:
                 display_name = metric_map[metric_col]
                 st.markdown(f"###### {display_name}")
-                data_series = df[metric_col][df[metric_col] > 0].dropna()
+                data_series = df[metric_col].dropna()
                 if not data_series.empty:
                     fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black')
-                    ax.set_xscale('log')
-                    ax.set_title(f'Distribución de {display_name}')
-                    ax.set_xlabel(f"{display_name} (Escala Log)")
+                    ax.hist(data_series, bins=20, edgecolor='black', range=(0,1))
+                    ax.set_xlabel("Valor Normalizado (0 a 1)")
                     ax.set_ylabel('Frecuencia')
                     st.pyplot(fig)
-                else:
-                    st.write(f"No hay datos positivos para graficar para {display_name}.")
-
+        
         if i + 1 < len(col_keys):
             metric_col = col_keys[i+1]
             with cols[1]:
                 display_name = metric_map[metric_col]
                 st.markdown(f"###### {display_name}")
-                data_series = df[metric_col][df[metric_col] > 0].dropna()
+                data_series = df[metric_col].dropna()
                 if not data_series.empty:
                     fig, ax = plt.subplots(figsize=(6, 4))
-                    ax.hist(data_series, bins=20, edgecolor='black')
-                    ax.set_xscale('log')
-                    ax.set_title(f'Distribución de {display_name}')
-                    ax.set_xlabel(f"{display_name} (Escala Log)")
+                    ax.hist(data_series, bins=20, edgecolor='black', range=(0,1))
+                    ax.set_xlabel("Valor Normalizado (0 a 1)")
                     ax.set_ylabel('Frecuencia')
                     st.pyplot(fig)
-                else:
-                    st.write(f"No hay datos positivos para graficar para {display_name}.")
-
 
 # --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
@@ -195,8 +186,6 @@ if st.session_state.get('datos_cargados', False):
                     st.warning(f"Se omitió la fila {index+1} de la pestaña 'CustListing' por no tener el formato esperado.")
                     continue
             
-            st.divider()
-
             st.subheader("Terminos de Busqueda")
             opciones_clicks = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
             seleccion_clicks = st.selectbox("Filtrar por porcentaje de clics:", list(opciones_clicks.keys()))
@@ -258,7 +247,6 @@ if st.session_state.get('datos_cargados', False):
         if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
             with st.expander("Minería de Datos", expanded=False):
                 st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
-                st.divider()
                 df_mining_proc = st.session_state.df_mining_kw
                 
                 try:
@@ -300,7 +288,6 @@ if st.session_state.get('datos_cargados', False):
                         for index, word in avoids_df[col_name].dropna().items():
                             st.checkbox(label=str(word), key=f"del_avoid_{col_name}_{index}")
                 
-                st.divider()
                 if st.button("Eliminar seleccionados de la lista", key="delete_avoids"):
                     palabras_eliminadas = False
                     for col_name in avoid_column_names:
@@ -316,8 +303,7 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra para eliminar.")
 
             avoid_list = pd.concat([st.session_state.avoids_df[col] for col in st.session_state.avoids_df.columns]).dropna().unique().tolist()
-            st.divider()
-
+            
             with st.expander("Tabla Consolidada de Palabras Únicas", expanded=True):
                 f_col, _ = st.columns([1, 2])
                 with f_col:
@@ -351,7 +337,6 @@ if st.session_state.get('datos_cargados', False):
                     header_cols[2].write("**Frec. Cliente**")
                     header_cols[3].write("**Frec. Comp.**")
                     header_cols[4].write("**Frec. Mining**")
-                    st.divider()
 
                     for index, row in df_filtered_u.iterrows():
                         row_cols = st.columns(header_cols_spec)
@@ -360,8 +345,6 @@ if st.session_state.get('datos_cargados', False):
                         row_cols[2].write(str(row['Frec. Cliente']))
                         row_cols[3].write(str(row['Frec. Comp.']))
                         row_cols[4].write(str(row['Frec. Mining']))
-
-                    st.divider()
 
                     if st.button("añadir a Avoids", key="consolidada_add_to_avoids"):
                         palabras_a_anadir = [row['Keyword'] for index, row in df_filtered_u.iterrows() if st.session_state.get(f"consolidada_cb_{index}")]
