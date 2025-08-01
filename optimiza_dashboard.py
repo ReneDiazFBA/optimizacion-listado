@@ -151,6 +151,7 @@ if st.session_state.get('datos_cargados', False):
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
             df_kw_proc = st.session_state.df_kw.copy()
+            # Renombrar columnas basado en el mapeo conocido
             df_kw_proc = df_kw_proc.rename(columns={
                 df_kw_proc.columns[0]: "Search Terms",
                 df_kw_proc.columns[1]: "ASIN Click Share",
@@ -177,7 +178,6 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Datos de competidores", expanded=False):
             st.subheader("ASIN de competidores")
             with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
-                # La lectura de CompKW para ASINs sigue siendo especial
                 df_comp_asins_raw = pd.read_excel(archivo, sheet_name="CompKW", header=None)
                 asin_raw = str(df_comp_asins_raw.iloc[0, 0])
                 start_index = asin_raw.find('B0')
@@ -226,13 +226,13 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw.copy()
                 
                 try:
-                    df_mining_proc.rename(columns={
+                    df_mining_proc = df_mining_proc.rename(columns={
                         df_mining_proc.columns[0]: 'Search Terms',
                         df_mining_proc.columns[2]: 'Relevance',
                         df_mining_proc.columns[5]: 'Search Volume',
                         df_mining_proc.columns[12]: 'Niche Product Depth',
                         df_mining_proc.columns[15]: 'Niche Click Share'
-                    }, inplace=True)
+                    })
 
                     df_to_display = df_mining_proc.copy()
                     df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
@@ -343,15 +343,21 @@ if st.session_state.get('datos_cargados', False):
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
         # Preparar y estandarizar cada fuente de datos por posición para evitar errores
-        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+        # Cliente
+        df_cust_raw = st.session_state.df_kw.copy()
+        df_cust = df_cust_raw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
         
-        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+        # Competencia
+        df_comp_raw = st.session_state.df_comp_data.copy()
+        df_comp = df_comp_raw.iloc[:, [0, 2, 5, 8, 18]].copy()
         df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
         df_comp['Source'] = 'Competencia'
         
-        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        # Mining
+        df_mining_raw = st.session_state.df_mining_kw.copy()
+        df_mining = df_mining_raw.iloc[:, [0, 2, 5, 12, 15]].copy()
         df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
         df_mining['Source'] = 'Mining'
         
