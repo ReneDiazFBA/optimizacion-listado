@@ -113,59 +113,6 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
-        st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
-
-        df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
-        df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
-
-        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
-        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
-        
-        df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
-        df_mining_sv.columns = ['Keyword', 'Volumen Mining']
-
-        merged_df = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
-        final_df = pd.merge(merged_df, df_mining_sv, on='Keyword', how='outer')
-
-        sv_cols = ['Volumen Cliente', 'Volumen Competidor', 'Volumen Mining']
-        for col in sv_cols:
-            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
-
-        final_df['Volumen (Más Alto)'] = final_df[sv_cols].max(axis=1)
-        
-        col_f, col_s = st.columns(2)
-        with col_f:
-            opciones_volumen = ['No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
-            seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
-        
-        with col_s:
-            opciones_sort = ['Volumen (Descendente)', 'Volumen (Ascendente)', 'Keyword (A-Z)', 'Keyword (Z-A)']
-            seleccion_sort = st.selectbox("Ordenar por:", opciones_sort)
-            
-        df_filtrado_vol = final_df.copy()
-        if seleccion_volumen == 'No mostrar Ceros':
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] > 0]
-        elif seleccion_volumen == 'Mostrar Solo Ceros':
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] == 0]
-        else:
-            umbral = int(seleccion_volumen.replace('>= ', ''))
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] >= umbral]
-
-        if seleccion_sort == 'Volumen (Descendente)':
-            df_ordenado = df_filtrado_vol.sort_values(by='Volumen (Más Alto)', ascending=False)
-        elif seleccion_sort == 'Volumen (Ascendente)':
-            df_ordenado = df_filtrado_vol.sort_values(by='Volumen (Más Alto)', ascending=True)
-        elif seleccion_sort == 'Keyword (A-Z)':
-            df_ordenado = df_filtrado_vol.sort_values(by='Keyword', ascending=True)
-        else: # Keyword (Z-A)
-            df_ordenado = df_filtrado_vol.sort_values(by='Keyword', ascending=False)
-            
-        result_df = df_ordenado[['Keyword', 'Volumen (Más Alto)']]
-        
-        st.dataframe(result_df.reset_index(drop=True))
-
-
     with st.expander("Datos para Análisis", expanded=False):
 
         # DATOS DEL CLIENTE
@@ -413,3 +360,60 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra.")
             else:
                 st.write("No hay palabras únicas para mostrar con los filtros actuales.")
+    
+    with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
+        st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
+
+        df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
+        df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
+
+        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
+        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
+        
+        df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
+        df_mining_sv.columns = ['Keyword', 'Volumen Mining']
+
+        merged_df = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
+        final_df = pd.merge(merged_df, df_mining_sv, on='Keyword', how='outer')
+
+        sv_cols = ['Volumen Cliente', 'Volumen Competidor', 'Volumen Mining']
+        for col in sv_cols:
+            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
+
+        final_df['Volumen (Más Alto)'] = final_df[sv_cols].max(axis=1)
+        
+        col_f, col_s = st.columns(2)
+        with col_f:
+            opciones_volumen = ['Mostrar Todos', 'No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
+            seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
+        
+        with col_s:
+            opciones_sort = ['Volumen (Descendente)', 'Volumen (Ascendente)', 'Keyword (A-Z)', 'Keyword (Z-A)']
+            seleccion_sort = st.selectbox("Ordenar por:", opciones_sort)
+        
+        st.metric("Registros Encontrados", len(final_df)) # Placeholder, will be updated
+            
+        df_filtrado_vol = final_df.copy()
+        if seleccion_volumen == 'No mostrar Ceros':
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] > 0]
+        elif seleccion_volumen == 'Mostrar Solo Ceros':
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] == 0]
+        elif seleccion_volumen != 'Mostrar Todos':
+            umbral = int(seleccion_volumen.replace('>= ', ''))
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] >= umbral]
+
+        if seleccion_sort == 'Volumen (Descendente)':
+            df_ordenado = df_filtrado_vol.sort_values(by='Volumen (Más Alto)', ascending=False)
+        elif seleccion_sort == 'Volumen (Ascendente)':
+            df_ordenado = df_filtrado_vol.sort_values(by='Volumen (Más Alto)', ascending=True)
+        elif seleccion_sort == 'Keyword (A-Z)':
+            df_ordenado = df_filtrado_vol.sort_values(by='Keyword', ascending=True)
+        else: # Keyword (Z-A)
+            df_ordenado = df_filtrado_vol.sort_values(by='Keyword', ascending=False)
+        
+        # Actualizar el contador de registros
+        st.metric("Registros Encontrados", len(df_ordenado))
+
+        result_df = df_ordenado[['Keyword', 'Volumen (Más Alto)']]
+        
+        st.dataframe(result_df.reset_index(drop=True))
