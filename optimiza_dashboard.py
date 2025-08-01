@@ -27,15 +27,9 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
         # --- CORRECCIÓN DE LECTURA DE DATOS ---
-        # Se leen las hojas sin encabezado, y luego se asignan manualmente
-        # para evitar errores con columnas duplicadas.
-        cust_kw_raw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None)
-        st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
-        st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
-
-        comp_kw_raw = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
-        st.session_state.df_comp_data = comp_kw_raw.iloc[2:].copy()
-        st.session_state.df_comp_data.columns = comp_kw_raw.iloc[1]
+        # Se leen los datos desde la fila 3 (skiprows=2) y se asignan nombres manualmente
+        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None, skiprows=2)
+        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None, skiprows=2)
         
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
@@ -44,8 +38,7 @@ def inicializar_datos(archivo_subido):
             mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
             title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
-            st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
-            st.session_state.df_mining_kw.columns = mining_kw_raw.iloc[1]
+            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, skiprows=2)
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
             st.session_state.mining_title = ""
@@ -218,29 +211,17 @@ if st.session_state.get('datos_cargados', False):
                 opciones_rel = [30, 50]
                 umbral_rel = st.selectbox("Relevance ≥:", opciones_rel)
 
-                df_mining_proc = st.session_state.df_mining_kw.copy()
+                df_mining_proc = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+                df_mining_proc.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
                 
-                try:
-                    df_mining_proc.rename(columns={
-                        df_mining_proc.columns[0]: 'Search Terms',
-                        df_mining_proc.columns[2]: 'Relevance',
-                        df_mining_proc.columns[5]: 'Search Volume',
-                        df_mining_proc.columns[12]: 'Niche Product Depth',
-                        df_mining_proc.columns[15]: 'Niche Click Share'
-                    }, inplace=True)
+                df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
+                df_to_display = df_mining_proc[df_mining_proc['Relevance'] >= umbral_rel].copy()
 
-                    df_to_display = df_mining_proc.copy()
-                    df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
-                    df_to_display = df_to_display[df_to_display['Relevance'] >= umbral_rel]
+                df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0)
+                df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
 
-                    df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0)
-                    df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
-
-                    with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
-                        st.dataframe(df_to_display)
-
-                except Exception as e:
-                    st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. Error: {e}")
+                with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
+                    st.dataframe(df_to_display)
 
         # SECCIÓN DE PALABRAS ÚNICAS
         with st.expander("Palabras Únicas", expanded=False): 
