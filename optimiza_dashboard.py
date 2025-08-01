@@ -215,21 +215,11 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Minería de Datos", expanded=False):
             
             st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
-            
-            opciones_relevancia_display = ["10%", "20%", "30%", "50%"]
-            opciones_relevancia_map = {"10%": 10, "20%": 20, "30%": 30, "50%": 50}
-            default_index = opciones_relevancia_display.index("30%")
-            
-            seleccion_relevancia = st.selectbox(
-                "Filtrar por relevancia mayor o igual a:",
-                opciones_relevancia_display,
-                index=default_index
-            )
-            umbral_relevancia = opciones_relevancia_map[seleccion_relevancia]
             st.divider()
 
+            # --- Tabla de MiningKW ---
+            st.subheader("Resultados de Minería")
             df_mining = st.session_state.df_mining_kw
-            
             try:
                 col_a_name = df_mining.columns[0]
                 col_c_name = df_mining.columns[2]
@@ -237,21 +227,60 @@ if st.session_state.get('datos_cargados', False):
 
                 df_to_display = df_mining[[col_a_name, col_f_name, col_c_name]].copy()
                 df_to_display.columns = ['Keywords', 'Búsquedas Mensuales', 'Relevancia']
-                
-                df_to_display['Relevancia'] = pd.to_numeric(df_to_display['Relevancia'], errors='coerce').fillna(0)
-                
-                df_filtrado = df_to_display[df_to_display['Relevancia'] >= umbral_relevancia].copy()
-                
-                # --- INICIO DE LA CORRECCIÓN ---
-                # Formatear la columna a entero, luego a texto y añadir '%'
-                df_filtrado['Relevancia'] = df_filtrado['Relevancia'].astype(int).astype(str) + '%'
-                # --- FIN DE LA CORRECCIÓN ---
-
-                st.dataframe(df_filtrado)
-
+                st.dataframe(df_to_display)
             except (IndexError, KeyError) as e:
                 st.error(f"El formato de la pestaña 'MiningKW' no es el esperado. No se pudieron encontrar las columnas A, C o F. Error: {e}")
 
+            st.divider()
+            
+            # --- INICIO DE NUEVA SECCIÓN DE MINING UNIQUE ---
+            if not st.session_state.df_mining_unique.empty:
+                avoid_column_names = st.session_state.avoids_df.columns.tolist()
+                avoid_list = pd.concat([st.session_state.avoids_df[col] for col in avoid_column_names]).dropna().unique().tolist()
+
+                st.subheader("Palabras Únicas de Mining (filtradas)")
+                filtro_mining = st.checkbox("Ocultar frecuencia ≤ 2", value=True, key="fmu")
+                
+                with st.expander("Ver/Ocultar Palabras Únicas de Mining", expanded=True):
+                    df_mining_unique = st.session_state.df_mining_unique
+                    df_mining_unique_filtered = df_mining_unique[~df_mining_unique[df_mining_unique.columns[0]].isin(avoid_list)]
+                    
+                    if filtro_mining and len(df_mining_unique.columns) > 1:
+                        freq_col_mining = df_mining_unique.columns[1]
+                        df_mining_unique_filtered.loc[:, freq_col_mining] = pd.to_numeric(df_mining_unique_filtered[freq_col_mining], errors='coerce')
+                        df_mining_unique_filtered = df_mining_unique_filtered[df_mining_unique_filtered[freq_col_mining].notna() & (df_mining_unique_filtered[freq_col_mining] > 2)]
+
+                    if not df_mining_unique_filtered.empty:
+                        header_cols_spec = [0.5, 2] + [1] * (len(df_mining_unique_filtered.columns) - 1)
+                        header_cols = st.columns(header_cols_spec)
+                        header_cols[0].write("**Sel.**")
+                        for i, col_name in enumerate(df_mining_unique_filtered.columns):
+                            header_cols[i+1].write(f"**{col_name}**")
+                        st.divider()
+
+                        for index, row in df_mining_unique_filtered.iterrows():
+                            row_cols = st.columns(header_cols_spec)
+                            row_cols[0].checkbox("", key=f"mining_unique_cb_{index}")
+                            for i, col_name in enumerate(df_mining_unique_filtered.columns):
+                                row_cols[i+1].write(row[col_name])
+                        
+                        st.divider()
+                        if st.button("añadir a Avoids", key="mining_unique_add_to_avoids"):
+                            palabras_a_anadir = []
+                            for index, row in df_mining_unique_filtered.iterrows():
+                                if st.session_state.get(f"mining_unique_cb_{index}"):
+                                    palabra = row[df_mining_unique_filtered.columns[0]]
+                                    palabras_a_anadir.append(palabra)
+                            
+                            if palabras_a_anadir:
+                                st.session_state.palabras_para_categorizar = palabras_a_anadir
+                                st.session_state.show_categorization_form = True
+                                st.rerun() 
+                            else:
+                                st.warning("No has seleccionado ninguna palabra.")
+                    else:
+                        st.write("No hay datos de palabras únicas de mining para mostrar.")
+            # --- FIN DE NUEVA SECCIÓN DE MINING UNIQUE ---
 
     # SECCIÓN DE PALABRAS ÚNICAS
     with st.expander("Palabras Únicas", expanded=True): 
