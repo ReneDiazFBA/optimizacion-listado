@@ -34,6 +34,7 @@ def inicializar_datos(archivo_subido):
         xls = pd.ExcelFile(archivo_subido)
         
         if 'MiningKW' in xls.sheet_names:
+            # Para MiningKW, la primera fila es un título especial, la segunda son los encabezados.
             title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
             title_string = title_df.iloc[0, 0] if not title_df.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
@@ -150,14 +151,8 @@ if st.session_state.get('datos_cargados', False):
             seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()))
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
-            df_kw_proc = st.session_state.df_kw.copy()
-            # Renombrar columnas basado en el mapeo conocido
-            df_kw_proc = df_kw_proc.rename(columns={
-                df_kw_proc.columns[0]: "Search Terms",
-                df_kw_proc.columns[1]: "ASIN Click Share",
-                df_kw_proc.columns[15]: "Search Volume",
-                df_kw_proc.columns[25]: "Total Click Share"
-            })
+            df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+            df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
 
             df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
@@ -190,14 +185,8 @@ if st.session_state.get('datos_cargados', False):
             st.subheader("Reverse ASIN Competidores")
             rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1)
             
-            df_comp_data_proc = st.session_state.df_comp_data.copy()
-            df_comp_data_proc = df_comp_data_proc.rename(columns={
-                df_comp_data_proc.columns[0]: "Search Terms",
-                df_comp_data_proc.columns[2]: "Sample Click Share",
-                df_comp_data_proc.columns[5]: "Sample Product Depth",
-                df_comp_data_proc.columns[8]: "Search Volume",
-                df_comp_data_proc.columns[18]: "Niche Click Share"
-            })
+            df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+            df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
             
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
             
@@ -339,25 +328,19 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-
+    
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
         # Preparar y estandarizar cada fuente de datos por posición para evitar errores
-        # Cliente
-        df_cust_raw = st.session_state.df_kw.copy()
-        df_cust = df_cust_raw.iloc[:, [0, 1, 15, 25]].copy()
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
         
-        # Competencia
-        df_comp_raw = st.session_state.df_comp_data.copy()
-        df_comp = df_comp_raw.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
         df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
         df_comp['Source'] = 'Competencia'
         
-        # Mining
-        df_mining_raw = st.session_state.df_mining_kw.copy()
-        df_mining = df_mining_raw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
         df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
         df_mining['Source'] = 'Mining'
         
