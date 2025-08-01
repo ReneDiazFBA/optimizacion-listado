@@ -113,54 +113,8 @@ if archivo:
 
 if st.session_state.get('datos_cargados', False):
     
-    with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
-        st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
-
-        df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
-        df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
-
-        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
-        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
-        
-        df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
-        df_mining_sv.columns = ['Keyword', 'Volumen Mining']
-
-        merged_df = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
-        final_df = pd.merge(merged_df, df_mining_sv, on='Keyword', how='outer')
-
-        sv_cols = ['Volumen Cliente', 'Volumen Competidor', 'Volumen Mining']
-        for col in sv_cols:
-            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
-
-        final_df['Volumen (Más Alto)'] = final_df[sv_cols].max(axis=1)
-        
-        f_col, m_col = st.columns([1, 2])
-        with f_col:
-            opciones_volumen = ['Mostrar Todos', 'No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
-            seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
-        
-        df_filtrado_vol = final_df.copy()
-        if seleccion_volumen == 'No mostrar Ceros':
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] > 0]
-        elif seleccion_volumen == 'Mostrar Solo Ceros':
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] == 0]
-        elif seleccion_volumen != 'Mostrar Todos':
-            umbral = int(seleccion_volumen.replace('>= ', ''))
-            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] >= umbral]
-        
-        with m_col:
-            st.metric("Registros Encontrados", len(df_filtrado_vol))
-            
-        result_df = df_filtrado_vol[['Keyword', 'Volumen (Más Alto)']]
-        result_df.columns = ['Search Term', 'Volumen (Más Alto)']
-        
-        st.dataframe(result_df.reset_index(drop=True))
-
-
     with st.expander("Datos para Análisis", expanded=False):
 
-        # --- INICIO DE LA CORRECCIÓN ---
-        # Se restauró el contenido completo de todas las subsecciones
         # DATOS DEL CLIENTE
         with st.expander("Datos del cliente", expanded=False):
             st.subheader("Listing de ASIN")
@@ -181,7 +135,7 @@ if st.session_state.get('datos_cargados', False):
                         st.markdown(f"**Marketplace:** {marketplace}")
                         st.markdown("**Titulo:**")
                         st.write(titulo)
-                        st.markdown("**Vinetas:**")
+                        st.markdown("**Bullet Points:**")
                         st.write(bullets)
                         st.markdown("**Descripción:**")
                         st.write(descripcion)
@@ -199,10 +153,10 @@ if st.session_state.get('datos_cargados', False):
             df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15]].copy()
             df_kw_proc.columns = ["Search Terms", "Click Share", "Search Volume"]
 
-            df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors="coerce")
+            df_kw_proc["Click Share"] = pd.to_numeric(df_kw_proc["Click Share"], errors='coerce')
             df_kw_filtrado = df_kw_proc[df_kw_proc["Click Share"].fillna(0) > umbral_clicks]
             df_kw_filtrado["Click Share"] = (df_kw_filtrado["Click Share"] * 100).round(2).astype(str) + "%"
-            df_kw_filtrado["Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors="coerce").fillna(0).astype(int)
+            df_kw_filtrado["Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
             
             with st.expander("Ver/Ocultar Terminos de Busqueda del Cliente", expanded=True):
                 st.markdown("<div style='max-width: 800px'>", unsafe_allow_html=True)
@@ -351,4 +305,46 @@ if st.session_state.get('datos_cargados', False):
                         st.warning("No has seleccionado ninguna palabra.")
             else:
                 st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-    # --- FIN DE LA CORRECCIÓN ---
+
+    with st.expander("Análisis de Volumen de Búsqueda", expanded=True):
+        st.subheader("Tabla Maestra de Keywords y Volumen de Búsqueda")
+
+        df_cust_sv = st.session_state.df_kw.iloc[:, [0, 15]].copy()
+        df_cust_sv.columns = ['Keyword', 'Volumen Cliente']
+
+        df_comp_sv = st.session_state.df_comp_data.iloc[:, [0, 8]].copy()
+        df_comp_sv.columns = ['Keyword', 'Volumen Competidor']
+        
+        df_mining_sv = st.session_state.df_mining_kw.iloc[:, [0, 5]].copy()
+        df_mining_sv.columns = ['Keyword', 'Volumen Mining']
+
+        merged_df = pd.merge(df_cust_sv, df_comp_sv, on='Keyword', how='outer')
+        final_df = pd.merge(merged_df, df_mining_sv, on='Keyword', how='outer')
+
+        sv_cols = ['Volumen Cliente', 'Volumen Competidor', 'Volumen Mining']
+        for col in sv_cols:
+            final_df[col] = pd.to_numeric(final_df[col], errors='coerce').fillna(0).astype(int)
+
+        final_df['Volumen (Más Alto)'] = final_df[sv_cols].max(axis=1)
+        
+        f_col, m_col = st.columns([1, 2])
+        with f_col:
+            opciones_volumen = ['Mostrar Todos', 'No mostrar Ceros', 'Mostrar Solo Ceros', '>= 300', '>= 500', '>= 700', '>= 1000']
+            seleccion_volumen = st.selectbox("Filtrar por volumen:", opciones_volumen)
+            
+        df_filtrado_vol = final_df.copy()
+        if seleccion_volumen == 'No mostrar Ceros':
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] > 0]
+        elif seleccion_volumen == 'Mostrar Solo Ceros':
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] == 0]
+        elif seleccion_volumen != 'Mostrar Todos':
+            umbral = int(seleccion_volumen.replace('>= ', ''))
+            df_filtrado_vol = final_df[final_df['Volumen (Más Alto)'] >= umbral]
+        
+        with m_col:
+            st.metric("Registros Encontrados", len(df_filtrado_vol))
+            
+        result_df = df_filtrado_vol[['Keyword', 'Volumen (Más Alto)']]
+        result_df.columns = ['Search Term', 'Volumen (Más Alto)']
+        
+        st.dataframe(result_df.reset_index(drop=True))
