@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 
+# --- Funciones ---
 def extract_mining_title(title_string):
     if not isinstance(title_string, str):
         return "Título no encontrado"
@@ -50,6 +51,7 @@ def inicializar_datos(archivo_subido):
         st.error(f"Error al leer las pestañas. Error: {e}")
         st.session_state.datos_cargados = False
 
+# --- App Principal ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
@@ -60,6 +62,9 @@ if archivo:
         inicializar_datos(archivo)
 
 if st.session_state.get('datos_cargados', False):
+    # Aquí todas las secciones originales de tu app (Cliente, Competidores, Mining, Avoids, etc.) siguen igual
+
+    # --- FIX EN LA TABLA MAESTRA ---
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
