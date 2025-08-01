@@ -177,6 +177,7 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Datos de competidores", expanded=False):
             st.subheader("ASIN de competidores")
             with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
+                # La lectura de CompKW para ASINs sigue siendo especial
                 df_comp_asins_raw = pd.read_excel(archivo, sheet_name="CompKW", header=None)
                 asin_raw = str(df_comp_asins_raw.iloc[0, 0])
                 start_index = asin_raw.find('B0')
@@ -225,13 +226,13 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw.copy()
                 
                 try:
-                    df_mining_proc = df_mining_proc.rename(columns={
+                    df_mining_proc.rename(columns={
                         df_mining_proc.columns[0]: 'Search Terms',
                         df_mining_proc.columns[2]: 'Relevance',
                         df_mining_proc.columns[5]: 'Search Volume',
                         df_mining_proc.columns[12]: 'Niche Product Depth',
                         df_mining_proc.columns[15]: 'Niche Click Share'
-                    })
+                    }, inplace=True)
 
                     df_to_display = df_mining_proc.copy()
                     df_to_display['Relevance'] = pd.to_numeric(df_to_display['Relevance'], errors='coerce').fillna(0)
@@ -341,22 +342,16 @@ if st.session_state.get('datos_cargados', False):
 
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         
-        # Preparar y estandarizar cada fuente de datos por posición para evitar errores de nombres duplicados
-        # Cliente
-        df_cust_raw = st.session_state.df_kw.copy()
-        df_cust = df_cust_raw.iloc[:, [0, 1, 15, 25]].copy()
+        # Preparar y estandarizar cada fuente de datos por posición para evitar errores
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
         
-        # Competencia
-        df_comp_raw = st.session_state.df_comp_data.copy()
-        df_comp = df_comp_raw.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
         df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
         df_comp['Source'] = 'Competencia'
         
-        # Mining
-        df_mining_raw = st.session_state.df_mining_kw.copy()
-        df_mining = df_mining_raw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
         df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
         df_mining['Source'] = 'Mining'
         
@@ -372,7 +367,8 @@ if st.session_state.get('datos_cargados', False):
         percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
         for col in percent_cols:
             if col in df_master.columns:
-                df_master[col] = (df_master[col] * 100).round(2).astype(str) + '%'
+                mask = df_master[col].notna()
+                df_master.loc[mask, col] = (df_master.loc[mask, col] * 100).round(2).astype(str) + '%'
         
         # Reordenar las columnas principales
         column_order = [
@@ -382,10 +378,7 @@ if st.session_state.get('datos_cargados', False):
         ]
         
         existing_cols = [col for col in column_order if col in df_master.columns]
-        other_cols = [col for col in df_master.columns if col not in existing_cols]
-        final_order = existing_cols + other_cols
-        
-        df_master = df_master[final_order]
+        df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master.fillna('N/A'), height=300)
+        st.dataframe(df_master, height=300)
