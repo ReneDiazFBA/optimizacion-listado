@@ -28,7 +28,8 @@ def inicializar_datos(archivo_subido):
 
         # Se leen las hojas de keywords desde la fila 3 (skiprows=2) sin encabezado
         st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None, skiprows=2)
-        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None, skiprows=2)
+        st.session_state.df_comp_data_full = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None) # Carga completa para ASINs
+        st.session_state.df_comp_data = st.session_state.df_comp_data_full.iloc[2:].copy() # Datos desde fila 3
 
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
@@ -177,7 +178,9 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Datos de competidores", expanded=False):
             st.subheader("ASIN de competidores")
             with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
-                df_comp_asins_raw = pd.read_excel(archivo, sheet_name="CompKW", header=None)
+                # --- LÍNEA CORREGIDA ---
+                # Usar el dataframe ya cargado en lugar de volver a leer el archivo
+                df_comp_asins_raw = st.session_state.df_comp_data_full
                 asin_raw = str(df_comp_asins_raw.iloc[0, 0])
                 start_index = asin_raw.find('B0')
                 clean_string_block = asin_raw[start_index:] if start_index != -1 else asin_raw
