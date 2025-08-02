@@ -363,4 +363,7 @@ if st.session_state.get('datos_cargados', False):
         df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master)
+        
+        # --- SOLUCIÓN DE CHATGPT IMPLEMENTADA AQUÍ ---
+        max_rows = st.slider("Máx. filas a mostrar:", min_value=100, max_value=len(df_master), value=500, step=100)
+        st.dataframe(df_master.head(max_rows), height=600)
