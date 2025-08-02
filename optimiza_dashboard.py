@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 
-# --- Funciones Auxiliares ---
+# --- Funciones ---
 def extract_mining_title(title_string):
     if not isinstance(title_string, str):
         return "Título no encontrado"
@@ -23,6 +23,7 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
         st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
+
         xls = pd.ExcelFile(archivo_subido)
         if 'MiningKW' in xls.sheet_names:
             title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
@@ -38,13 +39,12 @@ def inicializar_datos(archivo_subido):
             st.session_state.df_mining_unique = pd.DataFrame()
         st.session_state.datos_cargados = True
     except Exception as e:
-        st.error(f"Error al leer una de las pestañas: {e}")
+        st.error(f"Error al leer una de las pestañas. Error: {e}")
         st.session_state.datos_cargados = False
 
-# --- Lógica Principal ---
+# --- UI Principal ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
-
 if archivo:
     if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
         st.session_state.clear()
@@ -52,43 +52,6 @@ if archivo:
         inicializar_datos(archivo)
 
 if st.session_state.get('datos_cargados', False):
-    with st.expander("Datos para Análisis", expanded=False):
-        # --- DATOS DEL CLIENTE ---
-        with st.expander("Datos del cliente", expanded=False):
-            st.subheader("Listing de ASIN")
-            for index, row in st.session_state.df_asin.iterrows():
-                try:
-                    marketplace, asin, titulo, bullets, descripcion_raw = row[:5]
-                    descripcion = "Este ASIN tiene contenido A+" if pd.isna(descripcion_raw) or str(descripcion_raw).strip() == "" else descripcion_raw
-                    with st.expander(f"ASIN: {asin}"):
-                        st.markdown(f"**Marketplace:** {marketplace}")
-                        st.markdown("**Titulo:**")
-                        st.write(titulo)
-                        st.markdown("**Bullet Points:**")
-                        st.write(bullets)
-                        st.markdown("**Descripción:**")
-                        st.write(descripcion)
-                except IndexError:
-                    st.warning(f"Se omitió la fila {index+1} por formato inesperado.")
-            st.subheader("Reverse ASIN del Producto")
-            opciones_clicks = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
-            seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()))
-            umbral_clicks = opciones_clicks[seleccion_clicks]
-            df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
-            df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
-            df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
-            df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
-            df_kw_filtrado["ASIN Click Share"] = (df_kw_filtrado["ASIN Click Share"] * 100).round(2).astype(str) + "%"
-            df_kw_filtrado["Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
-            tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
-            df_kw_filtrado["Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
-            column_order = ["Search Terms", "Search Volume", "ASIN Click Share", "Total Click Share"]
-            st.dataframe(df_kw_filtrado[column_order].reset_index(drop=True), height=400)
-        
-        # --- (Las demás secciones que no cambiaron irían aquí sin tocar: Competidores, Minería, Palabras Únicas, Avoids) ---
-        # Las omito aquí por espacio, pero debes mantenerlas igual.
-
-    # --- TABLA MAESTRA DE DATOS COMPILADOS (Corregida) ---
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
