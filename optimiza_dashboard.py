@@ -18,33 +18,53 @@ def extract_mining_title(title_string):
     return "Título no pudo ser extraído"
 
 def inicializar_datos(archivo_subido):
-    """Carga los datos del Excel y los guarda en el session_state."""
+    """
+    Carga los datos del Excel. Devuelve True si tiene éxito, False si falla,
+    y muestra errores específicos en la interfaz.
+    """
     try:
-        # Se lee el archivo una sola vez para evitar errores
         xls = pd.ExcelFile(archivo_subido)
+        
+        # 1. Verificar que todas las pestañas obligatorias existan
+        required_sheets = ["CustListing", "Avoids", "CustUnique", "CompUnique", "CustKW", "CompKW"]
+        for sheet in required_sheets:
+            if sheet not in xls.sheet_names:
+                st.error(f"Error Crítico: No se encontró la pestaña obligatoria '{sheet}' en el archivo Excel.")
+                return False
 
-        # Pestañas requeridas
+        # 2. Cargar pestañas simples
         st.session_state.df_asin = pd.read_excel(xls, sheet_name="CustListing")
         st.session_state.avoids_df = pd.read_excel(xls, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(xls, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(xls, sheet_name="CompUnique", header=0)
 
-        # Carga y procesa hojas complejas
+        # 3. Cargar y procesar hojas complejas con validación
         cust_kw_raw = pd.read_excel(xls, sheet_name="CustKW", header=None)
+        if len(cust_kw_raw) < 3:
+            st.error("Error de Formato: La pestaña 'CustKW' debe tener al menos 3 filas (info, encabezados, datos).")
+            return False
         st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
         st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
 
         comp_kw_raw = pd.read_excel(xls, sheet_name="CompKW", header=None)
+        if len(comp_kw_raw) < 3:
+            st.error("Error de Formato: La pestaña 'CompKW' debe tener al menos 3 filas.")
+            return False
         st.session_state.comp_kw_raw = comp_kw_raw
         st.session_state.df_comp_data = comp_kw_raw.iloc[2:].copy()
         st.session_state.df_comp_data.columns = comp_kw_raw.iloc[1]
         
+        # 4. Cargar pestañas opcionales
         if 'MiningKW' in xls.sheet_names:
             mining_kw_raw = pd.read_excel(xls, sheet_name="MiningKW", header=None)
-            title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
-            st.session_state.mining_title = extract_mining_title(title_string)
-            st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
-            st.session_state.df_mining_kw.columns = mining_kw_raw.iloc[1]
+            if len(mining_kw_raw) > 2:
+                title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
+                st.session_state.mining_title = extract_mining_title(title_string)
+                st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
+                st.session_state.df_mining_kw.columns = mining_kw_raw.iloc[1]
+            else:
+                st.session_state.df_mining_kw = pd.DataFrame()
+                st.session_state.mining_title = ""
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
             st.session_state.mining_title = ""
@@ -54,11 +74,11 @@ def inicializar_datos(archivo_subido):
         else:
             st.session_state.df_mining_unique = pd.DataFrame()
 
-        st.session_state.datos_cargados = True
+        return True  # Si todo sale bien, devuelve True
+        
     except Exception as e:
-        st.error(f"Error al leer una de las pestañas. Asegúrate de que el archivo y las pestañas existan y tengan el formato correcto. Error: {e}")
-        st.session_state.datos_cargados = False
-
+        st.error(f"Ocurrió un error inesperado al procesar el archivo: {e}")
+        return False # Si algo falla, devuelve False
 
 def anadir_palabra_a_avoids(palabra, categoria):
     avoids_df = st.session_state.avoids_df
@@ -107,7 +127,7 @@ if archivo:
     if 'last_uploaded_file' not in st.session_state or st.session_state.last_uploaded_file != archivo.name:
         st.session_state.clear()
         st.session_state.last_uploaded_file = archivo.name
-        inicializar_datos(archivo)
+        st.session_state.datos_cargados = inicializar_datos(archivo) # Actualiza el estado basado en el éxito de la carga
 
 if st.session_state.get('datos_cargados', False):
     
