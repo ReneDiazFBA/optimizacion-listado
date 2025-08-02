@@ -8,13 +8,6 @@ st.set_page_config(page_title="Optimización de Listado", layout="wide")
 
 # --- Funciones ---
 def extract_mining_title(title_string):
-    """Extrae el keyword principal del texto en la primera fila de la pestaña MiningKW."""
-    if not isinstance(title_string, str):
-        return "Título no encontrado"
-    match = re.search(r'US-(.*?)(?:\(|$|-)', title_string)
-    if match:
-        return match.group(1).strip()
-    return "Título no pudo ser extraído"
 """Extrae el keyword principal del texto en la primera fila de la pestaña MiningKW."""
 if not isinstance(title_string, str):
 return "Título no encontrado"
@@ -172,9 +165,11 @@ column_order = ["Search Terms", "Search Volume", "ASIN Click Share", "Total Clic
 df_kw_filtrado = df_kw_filtrado[column_order]
 
 with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
+
 df_kw_filtrado_reset = df_kw_filtrado.reset_index(drop=True)
-df_kw_filtrado_reset.insert(0, "#", range(1, 1 + len(df_kw_filtrado_reset)))
+df_kw_filtrado_reset.insert(0, '#', range(1, 1 + len(df_kw_filtrado_reset)))
 st.dataframe(df_kw_filtrado_reset, height=400)
+
 
 # DATOS DE COMPETIDORES
 with st.expander("Datos de competidores", expanded=False):
@@ -209,9 +204,11 @@ column_order_comp = ["Search Terms", "Search Volume", "Sample Click Share", "Nic
 df_comp_data_proc = df_comp_data_proc[column_order_comp]
 
 with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
+
 df_comp_data_proc_reset = df_comp_data_proc.reset_index(drop=True)
-df_comp_data_proc_reset.insert(0, "#", range(1, 1 + len(df_comp_data_proc_reset)))
+df_comp_data_proc_reset.insert(0, '#', range(1, 1 + len(df_comp_data_proc_reset)))
 st.dataframe(df_comp_data_proc_reset, height=400)
+
 
 # DATOS DE MINERÍA
 if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
@@ -231,9 +228,11 @@ df_to_display['Niche Click Share'] = pd.to_numeric(df_to_display['Niche Click Sh
 df_to_display['Niche Click Share'] = (df_to_display['Niche Click Share'] * 100).round(2).astype(str) + '%'
 
 with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
+
 df_to_display_reset = df_to_display.reset_index(drop=True)
-df_to_display_reset.insert(0, "#", range(1, 1 + len(df_to_display_reset)))
+df_to_display_reset.insert(0, '#', range(1, 1 + len(df_to_display_reset)))
 st.dataframe(df_to_display_reset)
+
 
 # SECCIÓN DE PALABRAS ÚNICAS
 with st.expander("Palabras Únicas", expanded=False):
@@ -369,4 +368,7 @@ existing_cols = [col for col in column_order if col in df_master.columns]
 df_master = df_master[existing_cols].fillna('N/A')
 
 st.metric("Total de Registros Compilados", len(df_master))
-st.dataframe(df_master, height=300)
+
+df_master_reset = df_master.reset_index(drop=True)
+df_master_reset.insert(0, '#', range(1, 1 + len(df_master_reset)))
+st.dataframe(df_master_reset, height=300)
