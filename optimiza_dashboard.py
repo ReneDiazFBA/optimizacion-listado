@@ -20,28 +20,26 @@ def extract_mining_title(title_string):
 def inicializar_datos(archivo_subido):
     """Carga los datos del Excel y los guarda en el session_state."""
     try:
-        # --- LÓGICA DE CARGA CORREGIDA Y SIMPLIFICADA ---
-        # Se lee el archivo una sola vez para evitar errores
-        xls = pd.ExcelFile(archivo_subido)
-
         # Pestañas requeridas
-        st.session_state.df_asin = pd.read_excel(xls, sheet_name="CustListing")
-        st.session_state.avoids_df = pd.read_excel(xls, sheet_name="Avoids", header=0)
-        st.session_state.df_cust_unique = pd.read_excel(xls, sheet_name="CustUnique", header=0)
-        st.session_state.df_comp_unique = pd.read_excel(xls, sheet_name="CompUnique", header=0)
+        st.session_state.df_asin = pd.read_excel(archivo_subido, sheet_name="CustListing")
+        st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
+        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
+        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
-        # Carga y procesa hojas complejas
-        cust_kw_raw = pd.read_excel(xls, sheet_name="CustKW", header=None)
+        # Lógica de carga robusta: Se lee la hoja completa, y la fila 2 se usa como encabezado
+        cust_kw_raw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None)
         st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
         st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
 
-        comp_kw_raw = pd.read_excel(xls, sheet_name="CompKW", header=None)
+        comp_kw_raw = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
         st.session_state.comp_kw_raw = comp_kw_raw
         st.session_state.df_comp_data = comp_kw_raw.iloc[2:].copy()
         st.session_state.df_comp_data.columns = comp_kw_raw.iloc[1]
         
+        xls = pd.ExcelFile(archivo_subido)
+        
         if 'MiningKW' in xls.sheet_names:
-            mining_kw_raw = pd.read_excel(xls, sheet_name="MiningKW", header=None)
+            mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
             title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
             st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
@@ -51,7 +49,7 @@ def inicializar_datos(archivo_subido):
             st.session_state.mining_title = ""
         
         if 'MiningUnique' in xls.sheet_names:
-            st.session_state.df_mining_unique = pd.read_excel(xls, sheet_name="MiningUnique", header=0)
+            st.session_state.df_mining_unique = pd.read_excel(archivo_subido, sheet_name="MiningUnique", header=0)
         else:
             st.session_state.df_mining_unique = pd.DataFrame()
 
@@ -138,9 +136,10 @@ if st.session_state.get('datos_cargados', False):
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
             df_kw_proc = st.session_state.df_kw.copy()
-            
+
             if not disable_filter_cliente:
-                df_kw_filtrado = df_kw_proc[pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce').fillna(0) > umbral_clicks].copy()
+                # Se filtra usando la posición de la columna (índice 1), no el nombre.
+                df_kw_filtrado = df_kw_proc[pd.to_numeric(df_kw_proc.iloc[:, 1], errors='coerce').fillna(0) > umbral_clicks].copy()
             else:
                 df_kw_filtrado = df_kw_proc.copy()
 
@@ -165,8 +164,10 @@ if st.session_state.get('datos_cargados', False):
             df_comp_data_proc = st.session_state.df_comp_data.copy()
             
             if not disable_filter_competidores:
-                df_comp_data_proc['Sample Product Depth'] = pd.to_numeric(df_comp_data_proc['Sample Product Depth'], errors='coerce')
-                df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Sample Product Depth"].notna() & (df_comp_data_proc["Sample Product Depth"] > rango)].copy()
+                # Se filtra usando la posición de la columna (índice 5), no el nombre.
+                columna_filtro_comp = df_comp_data_proc.columns[5]
+                df_comp_data_proc[columna_filtro_comp] = pd.to_numeric(df_comp_data_proc[columna_filtro_comp], errors='coerce')
+                df_comp_data_proc = df_comp_data_proc[df_comp_data_proc[columna_filtro_comp].notna() & (df_comp_data_proc[columna_filtro_comp] > rango)].copy()
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
@@ -181,8 +182,10 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc = st.session_state.df_mining_kw.copy()
 
                 if not disable_filter_mining:
-                    df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
-                    df_to_display = df_mining_proc[df_mining_proc['Relevance'] >= umbral_rel].copy()
+                    # Se filtra usando la posición de la columna (índice 2), no el nombre.
+                    columna_filtro_mining = df_mining_proc.columns[2]
+                    df_mining_proc[columna_filtro_mining] = pd.to_numeric(df_mining_proc[columna_filtro_mining], errors='coerce').fillna(0)
+                    df_to_display = df_mining_proc[df_mining_proc[columna_filtro_mining] >= umbral_rel].copy()
                 else:
                     df_to_display = df_mining_proc.copy()
 
