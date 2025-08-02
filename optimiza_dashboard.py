@@ -171,7 +171,6 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
                 st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
-                # --- ALTURA CORREGIDA ---
                 st.dataframe(df_kw_filtrado.reset_index(drop=True))
 
         # DATOS DE COMPETIDORES
@@ -209,7 +208,6 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
-                # --- ALTURA CORREGIDA ---
                 st.dataframe(df_comp_data_proc.reset_index(drop=True))
 
         # DATOS DE MINERÍA
