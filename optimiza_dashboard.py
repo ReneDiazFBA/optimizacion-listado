@@ -146,7 +146,6 @@ if st.session_state.get('datos_cargados', False):
 
             st.subheader("Reverse ASIN del Producto")
             
-            # --- NUEVOS ELEMENTOS ---
             disable_filter_cliente = st.checkbox("Deshabilitar filtro", key="cliente_disable")
             opciones_clicks = {"Mayor al 5%": 0.05, "Mayor al 2.5%": 0.025}
             seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()), disabled=disable_filter_cliente)
@@ -156,7 +155,6 @@ if st.session_state.get('datos_cargados', False):
             df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
             df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
 
-            # --- LÓGICA DE FILTRO CONDICIONAL ---
             if not disable_filter_cliente:
                 df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
             else:
@@ -172,7 +170,6 @@ if st.session_state.get('datos_cargados', False):
             df_kw_filtrado = df_kw_filtrado[column_order]
 
             with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
-                # --- NUEVO CONTADOR ---
                 st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
                 st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
 
@@ -191,7 +188,6 @@ if st.session_state.get('datos_cargados', False):
 
             st.subheader("Reverse ASIN Competidores")
             
-            # --- NUEVOS ELEMENTOS ---
             disable_filter_competidores = st.checkbox("Deshabilitar filtro", key="comp_disable")
             rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1, disabled=disable_filter_competidores)
 
@@ -200,7 +196,6 @@ if st.session_state.get('datos_cargados', False):
             df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
             df_comp_data_proc['Sample Product Depth'] = pd.to_numeric(df_comp_data_proc['Sample Product Depth'], errors='coerce')
 
-            # --- LÓGICA DE FILTRO CONDICIONAL ---
             if not disable_filter_competidores:
                 df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Sample Product Depth"].notna() & (df_comp_data_proc["Sample Product Depth"] > rango)].copy()
 
@@ -212,7 +207,6 @@ if st.session_state.get('datos_cargados', False):
             df_comp_data_proc = df_comp_data_proc[column_order_comp]
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
-                # --- NUEVO CONTADOR ---
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
                 st.dataframe(df_comp_data_proc.reset_index(drop=True), height=400)
 
@@ -221,7 +215,6 @@ if st.session_state.get('datos_cargados', False):
             with st.expander("Mineria de Search Terms", expanded=False):
                 st.markdown(f"#### Keyword Principal: *{st.session_state.mining_title}*")
 
-                # --- NUEVOS ELEMENTOS ---
                 disable_filter_mining = st.checkbox("Deshabilitar filtro", key="mining_disable")
                 opciones_rel = [30, 50]
                 umbral_rel = st.selectbox("Relevance ≥:", opciones_rel, disabled=disable_filter_mining)
@@ -230,7 +223,6 @@ if st.session_state.get('datos_cargados', False):
                 df_mining_proc.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
                 df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
 
-                # --- LÓGICA DE FILTRO CONDICIONAL ---
                 if not disable_filter_mining:
                     df_to_display = df_mining_proc[df_mining_proc['Relevance'] >= umbral_rel].copy()
                 else:
@@ -239,13 +231,11 @@ if st.session_state.get('datos_cargados', False):
                 df_to_display['Niche Click Share'] = (pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0) * 100).round(2).astype(str) + '%'
 
                 with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
-                    # --- NUEVO CONTADOR ---
                     st.metric("Total de Términos (Minería)", len(df_to_display))
                     st.dataframe(df_to_display)
 
         # SECCIÓN DE PALABRAS ÚNICAS
         with st.expander("Palabras Únicas", expanded=False):
-            # ... (código sin cambios)
             if st.session_state.get('show_categorization_form', False):
                 mostrar_pagina_categorizacion()
                 st.divider()
@@ -338,7 +328,6 @@ if st.session_state.get('datos_cargados', False):
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
             
     with st.expander("Tabla Maestra de Datos Compilados", expanded=False):
-        # ... (código sin cambios)
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
@@ -374,4 +363,6 @@ if st.session_state.get('datos_cargados', False):
         df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master, height=300)
+        
+        # --- LÍNEA CORREGIDA ---
+        st.dataframe(df_master)
