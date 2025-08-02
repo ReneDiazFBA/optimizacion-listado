@@ -171,7 +171,8 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
                 st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
-                st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
+                # --- ALTURA CORREGIDA ---
+                st.dataframe(df_kw_filtrado.reset_index(drop=True))
 
         # DATOS DE COMPETIDORES
         with st.expander("Datos de competidores", expanded=False):
@@ -208,7 +209,8 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
-                st.dataframe(df_comp_data_proc.reset_index(drop=True), height=400)
+                # --- ALTURA CORREGIDA ---
+                st.dataframe(df_comp_data_proc.reset_index(drop=True))
 
         # DATOS DE MINERÍA
         if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
@@ -363,6 +365,4 @@ if st.session_state.get('datos_cargados', False):
         df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        
-        # --- LÍNEA CORREGIDA ---
         st.dataframe(df_master)
