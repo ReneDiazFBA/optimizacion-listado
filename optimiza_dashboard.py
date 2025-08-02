@@ -26,18 +26,19 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
-        # Se leen las hojas de keywords desde la fila 3 (skiprows=2) sin encabezado
-        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None, skiprows=2)
-        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None, skiprows=2)
+        # Se ajustan todas las tablas de keywords para usar la fila 2 como encabezado (header=1)
+        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
+        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
         
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
         
         if 'MiningKW' in xls.sheet_names:
-            mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
-            title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
+            title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
+            title_string = title_df.iloc[0, 0] if not title_df.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
-            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, skiprows=2)
+            
+            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=1, engine='openpyxl')
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
             st.session_state.mining_title = ""
