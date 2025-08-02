@@ -17,27 +17,41 @@ def inicializar_datos(archivo_subido):
     """Carga los datos del Excel y los guarda en el session_state."""
     try:
         xls = pd.ExcelFile(archivo_subido)
+        # --- INICIO DE LA SECCIÓN CORREGIDA ---
+        # Carga robusta que ignora los encabezados del archivo y asigna los suyos.
+        
         # Pestañas requeridas
-        st.session_state.df_asin = pd.read_excel(xls, sheet_name="CustListing")
-        st.session_state.avoids_df = pd.read_excel(xls, sheet_name="Avoids", header=0)
-        st.session_state.df_cust_unique = pd.read_excel(xls, sheet_name="CustUnique", header=0)
-        st.session_state.df_comp_unique = pd.read_excel(xls, sheet_name="CompUnique", header=0)
+        st.session_state.df_asin = pd.read_excel(xls, sheet_name="CustListing", header=None, skiprows=1)
+        st.session_state.df_asin.columns = ['Marketplace', 'ASIN', 'Product Title', 'Bullet Points', 'Description']
+
+        st.session_state.avoids_df = pd.read_excel(xls, sheet_name="Avoids", header=None, skiprows=1)
+        st.session_state.avoids_df.columns = ['Stopword', 'Marca', 'Irrelevante']
+
+        st.session_state.df_cust_unique = pd.read_excel(xls, sheet_name="CustUnique", header=None, skiprows=1)
+        st.session_state.df_cust_unique.columns = ['Keyword', 'Frequency']
+
+        st.session_state.df_comp_unique = pd.read_excel(xls, sheet_name="CompUnique", header=None, skiprows=1)
+        st.session_state.df_comp_unique.columns = ['Keyword', 'Frequency']
+
         st.session_state.df_kw = pd.read_excel(xls, sheet_name="CustKW", header=None, skiprows=2)
         st.session_state.df_comp_data = pd.read_excel(xls, sheet_name="CompKW", header=None, skiprows=2)
         
         # Carga segura de pestañas opcionales
         st.session_state.df_mining_kw = pd.read_excel(xls, sheet_name="MiningKW", header=None, skiprows=2) if 'MiningKW' in xls.sheet_names else pd.DataFrame()
-        st.session_state.df_mining_unique = pd.read_excel(xls, sheet_name="MiningUnique", header=0) if 'MiningUnique' in xls.sheet_names else pd.DataFrame()
-        
+        st.session_state.df_mining_unique = pd.read_excel(xls, sheet_name="MiningUnique", header=None, skiprows=1) if 'MiningUnique' in xls.sheet_names else pd.DataFrame()
+        if not st.session_state.df_mining_unique.empty:
+            st.session_state.df_mining_unique.columns = ['Keyword', 'Frequency']
+            
         if 'MiningKW' in xls.sheet_names:
             mining_kw_raw = pd.read_excel(xls, sheet_name="MiningKW", header=None)
             st.session_state.mining_title = extract_mining_title(mining_kw_raw.iloc[0, 0]) if not mining_kw_raw.empty else ""
         else:
             st.session_state.mining_title = ""
+        # --- FIN DE LA SECCIÓN CORREGIDA ---
             
         st.session_state.datos_cargados = True
     except Exception as e:
-        st.error(f"Error al leer el archivo. Asegúrate de que todas las pestañas requeridas existan. Error: {e}")
+        st.error(f"Error al leer el archivo. Asegúrate de que todas las pestañas requeridas existan y tengan datos. Error: {e}")
         st.session_state.datos_cargados = False
 
 def anadir_palabra_a_avoids(palabra, categoria):
@@ -102,7 +116,6 @@ if st.session_state.datos_cargados:
     with tab1:
         st.header("Análisis de Fuentes de Keywords")
         
-        # --- SECCIÓN CLIENTE ---
         with st.container(border=True):
             st.subheader("Cliente: Reverse ASIN del Producto")
             disable_filter_cliente = st.checkbox("Mostrar todos (deshabilitar filtro)", key="cliente_disable")
@@ -122,7 +135,6 @@ if st.session_state.datos_cargados:
             st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
             st.dataframe(df_kw_filtrado)
 
-        # --- SECCIÓN COMPETIDORES ---
         with st.container(border=True):
             st.subheader("Competidores: Reverse ASIN")
             disable_filter_competidores = st.checkbox("Mostrar todos (deshabilitar filtro)", key="comp_disable")
@@ -140,7 +152,6 @@ if st.session_state.datos_cargados:
             st.metric("Total de Términos (Competidores)", len(df_comp_filtrado))
             st.dataframe(df_comp_filtrado)
 
-        # --- SECCIÓN MINING ---
         if not st.session_state.df_mining_kw.empty:
             with st.container(border=True):
                 st.subheader(f"Minería de Search Terms: *{st.session_state.mining_title}*")
@@ -172,22 +183,23 @@ if st.session_state.datos_cargados:
             st.subheader("Tabla Consolidada de Palabras Únicas")
             umbral_freq = st.selectbox("Frecuencia Mínima ≥:", [1, 2, 3, 4, 5], index=1)
 
-            # Unir dataframes de frecuencia
-            df_cust_u = st.session_state.df_cust_unique.iloc[:, [0, 1]].set_index('Keyword')
-            df_comp_u = st.session_state.df_comp_unique.iloc[:, [0, 1]].set_index('Keyword')
-            final_df_u = df_cust_u.join(df_comp_u, how='outer', lsuffix='_Cliente', rsuffix='_Comp')
+            df_cust_u_proc = st.session_state.df_cust_unique.copy()
+            df_comp_u_proc = st.session_state.df_comp_unique.copy()
+
+            final_df_u = pd.merge(df_cust_u_proc, df_comp_u_proc, on='Keyword', how='outer', suffixes=('_Cliente', '_Comp'))
+            final_df_u.rename(columns={'Frequency_Cliente': 'Frec. Cliente', 'Frequency_Comp': 'Frec. Comp.'}, inplace=True)
             
             if not st.session_state.df_mining_unique.empty:
-                df_mining_u = st.session_state.df_mining_unique.iloc[:, [0, 1]].set_index('Keyword')
-                final_df_u = final_df_u.join(df_mining_u.rename(columns={df_mining_u.columns[0]: 'Frec_Mining'}), how='outer')
-
-            final_df_u = final_df_u.fillna(0).astype(int).reset_index()
-            final_df_u.columns = ['Keyword', 'Frec. Cliente', 'Frec. Comp.'] + (['Frec. Mining'] if 'Frec_Mining' in final_df_u.columns else [])
+                df_mining_u_proc = st.session_state.df_mining_unique.copy()
+                final_df_u = pd.merge(final_df_u, df_mining_u_proc.rename(columns={'Frequency': 'Frec. Mining'}), on='Keyword', how='outer')
             
-            # Filtrar
+            final_df_u = final_df_u.fillna(0)
+            freq_cols = [col for col in final_df_u.columns if 'Frec.' in col]
+            for col in freq_cols:
+                final_df_u[col] = final_df_u[col].astype(int)
+
             avoid_list = pd.concat([st.session_state.avoids_df[col] for col in st.session_state.avoids_df.columns]).dropna().unique()
             df_filtered_u = final_df_u[~final_df_u['Keyword'].isin(avoid_list)]
-            freq_cols = [col for col in df_filtered_u.columns if 'Frec.' in col]
             df_filtered_u = df_filtered_u[df_filtered_u[freq_cols].ge(umbral_freq).any(axis=1)].copy()
 
             if not df_filtered_u.empty:
@@ -209,7 +221,6 @@ if st.session_state.datos_cargados:
 
     with tab3:
         st.header("Tabla Maestra de Datos Compilados")
-        # Preparar y unir datos de todas las fuentes
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].assign(Source='Cliente')
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share", 'Source']
         df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].assign(Source='Competencia')
@@ -226,15 +237,15 @@ if st.session_state.datos_cargados:
         st.dataframe(df_master.fillna('N/A'))
     
     with tab4:
-        st.header("Información de Listings del Cliente")
+        st.header("Información de Listings")
         with st.container(border=True):
             st.subheader("ASINs de Cliente")
-            for _, row in st.session_state.df_asin.iterrows():
-                with st.expander(f"ASIN: {row.iloc[1]}"):
-                    st.write(f"**Marketplace:** {row.iloc[0]}")
-                    st.write(f"**Título:** {row.iloc[2]}")
-                    st.write(f"**Bullet Points:** {row.iloc[3]}")
-                    st.write(f"**Descripción:** {row.iloc[4] if pd.notna(row.iloc[4]) and str(row.iloc[4]).strip() else 'Contenido A+'}")
+            for index, row in st.session_state.df_asin.iterrows():
+                with st.expander(f"ASIN: {row['ASIN']}"):
+                    st.write(f"**Marketplace:** {row['Marketplace']}")
+                    st.write(f"**Título:** {row['Product Title']}")
+                    st.write(f"**Bullet Points:** {row['Bullet Points']}")
+                    st.write(f"**Descripción:** {row['Description'] if pd.notna(row['Description']) and str(row['Description']).strip() else 'Contenido A+'}")
 
             st.subheader("ASINs de Competidores")
             df_comp_asins_raw = pd.read_excel(archivo, sheet_name="CompKW", header=None)
