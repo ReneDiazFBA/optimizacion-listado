@@ -20,35 +20,28 @@ def extract_mining_title(title_string):
 def inicializar_datos(archivo_subido):
     """Carga los datos del Excel y los guarda en el session_state."""
     try:
-        # Pestañas requeridas (lectura simple)
+        # Pestañas requeridas
         st.session_state.df_asin = pd.read_excel(archivo_subido, sheet_name="CustListing")
         st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
 
-        # --- LÓGICA DE CARGA ROBUSTA RESTAURADA ---
-        # Se leen las hojas sin encabezado, y luego se asigna la fila correcta como encabezado.
-        cust_kw_raw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None)
-        st.session_state.df_kw = cust_kw_raw.iloc[2:].copy()
-        st.session_state.df_kw.columns = cust_kw_raw.iloc[1]
+        # Se leen las hojas de keywords desde la fila 3 (skiprows=2) sin encabezado
+        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=None, skiprows=2)
+        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None, skiprows=2)
 
-        comp_kw_raw = pd.read_excel(archivo_subido, sheet_name="CompKW", header=None)
-        st.session_state.df_comp_data = comp_kw_raw.iloc[2:].copy()
-        st.session_state.df_comp_data.columns = comp_kw_raw.iloc[1]
-        
         # Carga segura de pestañas opcionales
         xls = pd.ExcelFile(archivo_subido)
-        
+
         if 'MiningKW' in xls.sheet_names:
             mining_kw_raw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None)
             title_string = mining_kw_raw.iloc[0, 0] if not mining_kw_raw.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
-            st.session_state.df_mining_kw = mining_kw_raw.iloc[2:].copy()
-            st.session_state.df_mining_kw.columns = mining_kw_raw.iloc[1]
+            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, skiprows=2)
         else:
             st.session_state.df_mining_kw = pd.DataFrame()
             st.session_state.mining_title = ""
-        
+
         if 'MiningUnique' in xls.sheet_names:
             st.session_state.df_mining_unique = pd.read_excel(archivo_subido, sheet_name="MiningUnique", header=0)
         else:
@@ -56,7 +49,7 @@ def inicializar_datos(archivo_subido):
 
         st.session_state.datos_cargados = True
     except Exception as e:
-        st.error(f"Error al leer una de las pestañas. Asegúrate de que el archivo y las pestañas existan y tengan el formato correcto. Error: {e}")
+        st.error(f"Error al leer una de las pestañas. Asegúrate de que el archivo y las pestañas existan. Error: {e}")
         st.session_state.datos_cargados = False
 
 
@@ -158,16 +151,27 @@ if st.session_state.get('datos_cargados', False):
             seleccion_clicks = st.selectbox("ASIN Click Share >:", list(opciones_clicks.keys()), disabled=disable_filter_cliente)
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
-            df_kw_proc = st.session_state.df_kw.copy()
+            df_kw_proc = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+            df_kw_proc.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
+            df_kw_proc["ASIN Click Share"] = pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce')
 
             if not disable_filter_cliente:
-                df_kw_filtrado = df_kw_proc[pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce').fillna(0) > umbral_clicks].copy()
+                df_kw_filtrado = df_kw_proc[df_kw_proc["ASIN Click Share"].fillna(0) > umbral_clicks].copy()
             else:
                 df_kw_filtrado = df_kw_proc.copy()
 
+            df_kw_filtrado.loc[:, "ASIN Click Share"] = (df_kw_filtrado["ASIN Click Share"] * 100).round(2).astype(str) + "%"
+            df_kw_filtrado.loc[:, "Search Volume"] = pd.to_numeric(df_kw_filtrado["Search Volume"], errors='coerce').fillna(0).astype(int)
+
+            tcs_numeric = pd.to_numeric(df_kw_filtrado["Total Click Share"], errors='coerce').fillna(0)
+            df_kw_filtrado.loc[:, "Total Click Share"] = (tcs_numeric * 100).round(2).astype(str) + '%'
+
+            column_order = ["Search Terms", "Search Volume", "ASIN Click Share", "Total Click Share"]
+            df_kw_filtrado = df_kw_filtrado[column_order]
+
             with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
                 st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
-                st.dataframe(df_kw_filtrado)
+                st.dataframe(df_kw_filtrado.reset_index(drop=True))
 
         # DATOS DE COMPETIDORES
         with st.expander("Datos de competidores", expanded=False):
@@ -187,15 +191,24 @@ if st.session_state.get('datos_cargados', False):
             disable_filter_competidores = st.checkbox("Deshabilitar filtro", key="comp_disable")
             rango = st.selectbox("Sample Product Depth >:", [4, 5, 6], index=1, disabled=disable_filter_competidores)
 
-            df_comp_data_proc = st.session_state.df_comp_data.copy()
-            
+            df_comp_data_proc = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+            df_comp_data_proc.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
+            df_comp_data_proc = df_comp_data_proc.dropna(subset=["Search Terms"])
+            df_comp_data_proc['Sample Product Depth'] = pd.to_numeric(df_comp_data_proc['Sample Product Depth'], errors='coerce')
+
             if not disable_filter_competidores:
-                df_comp_data_proc['Sample Product Depth'] = pd.to_numeric(df_comp_data_proc['Sample Product Depth'], errors='coerce')
                 df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Sample Product Depth"].notna() & (df_comp_data_proc["Sample Product Depth"] > rango)].copy()
+
+            df_comp_data_proc['Search Volume'] = pd.to_numeric(df_comp_data_proc['Search Volume'], errors='coerce').fillna(0).astype(int)
+            df_comp_data_proc['Sample Click Share'] = (pd.to_numeric(df_comp_data_proc['Sample Click Share'], errors='coerce').fillna(0) * 100).round(2).astype(str) + '%'
+            df_comp_data_proc['Niche Click Share'] = (pd.to_numeric(df_comp_data_proc['Niche Click Share'], errors='coerce').fillna(0) * 100).round(2).astype(str) + '%'
+            
+            column_order_comp = ["Search Terms", "Search Volume", "Sample Click Share", "Niche Click Share", "Sample Product Depth"]
+            df_comp_data_proc = df_comp_data_proc[column_order_comp]
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
-                st.dataframe(df_comp_data_proc)
+                st.dataframe(df_comp_data_proc.reset_index(drop=True))
 
         # DATOS DE MINERÍA
         if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
@@ -206,13 +219,16 @@ if st.session_state.get('datos_cargados', False):
                 opciones_rel = [30, 50]
                 umbral_rel = st.selectbox("Relevance ≥:", opciones_rel, disabled=disable_filter_mining)
 
-                df_mining_proc = st.session_state.df_mining_kw.copy()
+                df_mining_proc = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+                df_mining_proc.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
+                df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
 
                 if not disable_filter_mining:
-                    df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
                     df_to_display = df_mining_proc[df_mining_proc['Relevance'] >= umbral_rel].copy()
                 else:
                     df_to_display = df_mining_proc.copy()
+
+                df_to_display['Niche Click Share'] = (pd.to_numeric(df_to_display['Niche Click Share'], errors='coerce').fillna(0) * 100).round(2).astype(str) + '%'
 
                 with st.expander("Ver/Ocultar Tabla de Minería", expanded=True):
                     st.metric("Total de Términos (Minería)", len(df_to_display))
@@ -310,18 +326,41 @@ if st.session_state.get('datos_cargados', False):
                             st.warning("No has seleccionado ninguna palabra.")
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
-    
+            
     with st.expander("Tabla Maestra de Datos Compilados", expanded=False):
-        # Preparar y estandarizar cada fuente de datos por posición
-        df_cust = st.session_state.df_kw.copy()
-        df_comp = st.session_state.df_comp_data.copy()
-        df_mining = st.session_state.df_mining_kw.copy()
-
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
         df_cust['Source'] = 'Cliente'
+
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
         df_comp['Source'] = 'Competencia'
+        
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
         df_mining['Source'] = 'Mining'
 
         df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+
+        numeric_cols = ['Search Volume', 'ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share', 'Sample Product Depth', 'Niche Product Depth', 'Relevance']
+        for col in numeric_cols:
+            if col in df_master.columns:
+                df_master[col] = pd.to_numeric(df_master[col], errors='coerce')
+        
+        percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
+        for col in percent_cols:
+            if col in df_master.columns:
+                mask = df_master[col].notna()
+                df_master.loc[mask, col] = (df_master.loc[mask, col] * 100).round(2).astype(str) + '%'
+        
+        column_order = [
+            'Search Terms', 'Source', 'Search Volume', 
+            'ASIN Click Share', 'Sample Click Share', 'Niche Click Share', 'Total Click Share',
+            'Sample Product Depth', 'Niche Product Depth', 'Relevance'
+        ]
+
+        existing_cols = [col for col in column_order if col in df_master.columns]
+        df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
         st.dataframe(df_master)
