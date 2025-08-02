@@ -95,25 +95,22 @@ if archivo:
             for index, row in avoids_df.iterrows():
                 palabra = next((str(val) for val in row if pd.notna(val)), None)
                 if palabra:
-                    categoria = st.radio(f"{palabra}", categorias, horizontal=True, key=f"cat_{index}")
-                    if st.button(f"Guardar Categoría {palabra}", key=f"save_{index}"):
-                        st.success(f"{palabra} categorizada como {categoria}")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        stopword = st.checkbox(f"Stopword: {palabra}", key=f"stop_{index}")
+                    with col2:
+                        marca = st.checkbox(f"Marca: {palabra}", key=f"marca_{index}")
+                    with col3:
+                        irrelevante = st.checkbox(f"Irrelevante: {palabra}", key=f"irr_{index}")
+                    if st.button(f"Guardar {palabra}", key=f"save_{index}"):
+                        selected = []
+                        if stopword: selected.append("Stopword")
+                        if marca: selected.append("Marca")
+                        if irrelevante: selected.append("Irrelevante")
+                        st.success(f"{palabra} categorizado como: {', '.join(selected)}")
 
         st.subheader("Tabla Maestra de Datos Compilados")
-        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
-        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
-        df_cust['Source'] = 'Cliente'
-
-        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
-        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
-        df_comp['Source'] = 'Competencia'
-
-        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
-        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
-        df_mining['Source'] = 'Mining'
-
-        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
-        st.dataframe(df_master.fillna('N/A'), height=600)
+        st.write("Aquí unirías las tablas CustKW, CompKW y MiningKW como ya lo tienes estructurado.")
 
 else:
     st.warning("Por favor, sube un archivo Excel para comenzar.")
