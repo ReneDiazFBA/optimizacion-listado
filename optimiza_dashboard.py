@@ -172,7 +172,7 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN del Producto", expanded=True):
                 st.metric("Total de Términos (Cliente)", len(df_kw_filtrado))
-                st.dataframe(df_kw_filtrado.reset_index(drop=True), height=400)
+                st.dataframe(df_kw_filtrado.reset_index(drop=True))
         
         # DATOS DE COMPETIDORES
         with st.expander("Datos de competidores", expanded=False):
@@ -211,7 +211,7 @@ if st.session_state.get('datos_cargados', False):
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
-                st.dataframe(df_comp_data_proc.reset_index(drop=True), height=400)
+                st.dataframe(df_comp_data_proc.reset_index(drop=True))
         
         # DATOS DE MINERÍA
         if st.session_state.get('df_mining_kw') is not None and not st.session_state.df_mining_kw.empty:
@@ -298,36 +298,36 @@ if st.session_state.get('datos_cargados', False):
                         final_df_u[col] = pd.to_numeric(final_df_u[col], errors='coerce').fillna(0).astype(int)
 
                 df_filtered_u = final_df_u[~final_df_u['Keyword'].isin(avoid_list)]
-                df_filtered_u = df_filtered_u[df_filtered_u[freq_cols].ge(umbral_freq).any(axis=1)]
+                df_filtered_u = df_filtered_u[df_filtered_u[freq_cols].ge(umbral_freq).any(axis=1)].copy()
 
                 if not df_filtered_u.empty:
-                    header_cols_spec = [0.5, 2, 1, 1, 1]
-                    header_cols = st.columns(header_cols_spec)
-                    header_cols[0].write("**Sel.**")
-                    header_cols[1].write("**Keyword**")
-                    header_cols[2].write("**Frec. Cliente**")
-                    header_cols[3].write("**Frec. Comp.**")
-                    header_cols[4].write("**Frec. Mining**")
-                    st.divider()
-
-                    for index, row in df_filtered_u.iterrows():
-                        row_cols = st.columns(header_cols_spec)
-                        row_cols[0].checkbox("", key=f"consolidada_cb_{index}")
-                        row_cols[1].write(row['Keyword'])
-                        row_cols[2].write(str(row['Frec. Cliente']))
-                        row_cols[3].write(str(row['Frec. Comp.']))
-                        row_cols[4].write(str(row['Frec. Mining']))
-
-                    st.divider()
+                    # --- INICIO DE LA SECCIÓN REFACTORIZADA ---
+                    df_filtered_u.insert(0, "Seleccionar", False)
+                    
+                    st.metric("Total de Palabras Únicas", len(df_filtered_u))
+                    
+                    edited_df = st.data_editor(
+                        df_filtered_u,
+                        hide_index=True,
+                        column_config={
+                            "Seleccionar": st.column_config.CheckboxColumn(required=True),
+                            "Keyword": st.column_config.TextColumn(disabled=True),
+                            "Frec. Cliente": st.column_config.NumberColumn(disabled=True),
+                            "Frec. Comp.": st.column_config.NumberColumn(disabled=True),
+                            "Frec. Mining": st.column_config.NumberColumn(disabled=True),
+                        },
+                        key="editor_palabras_unicas"
+                    )
 
                     if st.button("añadir a Avoids", key="consolidada_add_to_avoids"):
-                        palabras_a_anadir = [row['Keyword'] for index, row in df_filtered_u.iterrows() if st.session_state.get(f"consolidada_cb_{index}")]
+                        palabras_a_anadir = edited_df.loc[edited_df["Seleccionar"], "Keyword"].tolist()
                         if palabras_a_anadir:
                             st.session_state.palabras_para_categorizar = palabras_a_anadir
                             st.session_state.show_categorization_form = True
                             st.rerun()
                         else:
                             st.warning("No has seleccionado ninguna palabra.")
+                    # --- FIN DE LA SECCIÓN REFACTORIZADA ---
                 else:
                     st.write("No hay palabras únicas para mostrar con los filtros actuales.")
 
@@ -373,4 +373,4 @@ if st.session_state.get('datos_cargados', False):
         df_master = df_master[existing_cols].fillna('N/A')
 
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master, height=300)
+        st.dataframe(df_master)
