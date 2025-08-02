@@ -6,11 +6,44 @@ import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Optimización de Listado", layout="wide")
 
-# --- Funciones Auxiliares ---
-# (Tu código original de funciones aquí... omitido por brevedad)
-# ...
+# --- Funciones ---
+def extract_mining_title(title_string):
+    if not isinstance(title_string, str):
+        return "Título no encontrado"
+    match = re.search(r'US-(.*?)(?:\(|$|-)', title_string)
+    if match:
+        return match.group(1).strip()
+    return "Título no pudo ser extraído"
 
-# --- Lógica Principal ---
+def inicializar_datos(archivo_subido):
+    try:
+        st.session_state.df_asin = pd.read_excel(archivo_subido, sheet_name="CustListing")
+        st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
+        st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
+        st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
+        st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
+        st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
+        
+        xls = pd.ExcelFile(archivo_subido)
+        if 'MiningKW' in xls.sheet_names:
+            title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
+            title_string = title_df.iloc[0, 0] if not title_df.empty else ""
+            st.session_state.mining_title = extract_mining_title(title_string)
+            st.session_state.df_mining_kw = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=1, engine='openpyxl')
+        else:
+            st.session_state.df_mining_kw = pd.DataFrame()
+            st.session_state.mining_title = ""
+        
+        if 'MiningUnique' in xls.sheet_names:
+            st.session_state.df_mining_unique = pd.read_excel(archivo_subido, sheet_name="MiningUnique", header=0)
+        else:
+            st.session_state.df_mining_unique = pd.DataFrame()
+        st.session_state.datos_cargados = True
+    except Exception as e:
+        st.error(f"Error al leer el archivo: {e}")
+        st.session_state.datos_cargados = False
+
+# --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
@@ -21,15 +54,14 @@ if archivo:
         inicializar_datos(archivo)
 
 if st.session_state.get('datos_cargados', False):
-    
-    # --- AQUI VAN TUS SECCIONES ORIGINALES ---
-    # Datos del Cliente
-    # Datos de Competidores
-    # Datos de Mining
-    # Datos de Avoids
-    # (Todo exactamente como en tu código original...)
+    st.success("Datos cargados correctamente")
+    st.write("df_asin:", st.session_state.df_asin.shape)
+    st.write("Avoids:", st.session_state.avoids_df.shape)
+    st.write("CustKW:", st.session_state.df_kw.shape)
+    st.write("CompKW:", st.session_state.df_comp_data.shape)
+    st.write("MiningKW:", st.session_state.df_mining_kw.shape)
 
-    # --- Tabla Maestra de Datos Compilados (Optimizada) ---
+    # TABLA MAESTRA COMPILADA
     with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
         df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
         df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
@@ -49,7 +81,7 @@ if st.session_state.get('datos_cargados', False):
         for col in numeric_cols:
             if col in df_master.columns:
                 df_master[col] = pd.to_numeric(df_master[col], errors='coerce')
-
+        
         percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
         for col in percent_cols:
             if col in df_master.columns:
@@ -63,6 +95,8 @@ if st.session_state.get('datos_cargados', False):
         ]
         existing_cols = [col for col in column_order if col in df_master.columns]
         df_master = df_master[existing_cols].fillna('N/A')
-
+        
         st.metric("Total de Registros Compilados", len(df_master))
-        st.dataframe(df_master, height=300)
+        st.dataframe(df_master, height=400)
+        
+    st.info("Aquí irán las demás secciones de tu código original (Cliente, Competidores, Mining, Avoids, etc.) que están en tu código original pero omití aquí por espacio.")
