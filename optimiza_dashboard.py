@@ -34,6 +34,7 @@ def inicializar_datos(archivo_subido):
         xls = pd.ExcelFile(archivo_subido)
         
         if 'MiningKW' in xls.sheet_names:
+            # Para MiningKW, la primera fila es un título especial, la segunda son los encabezados.
             title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
             title_string = title_df.iloc[0, 0] if not title_df.empty else ""
             st.session_state.mining_title = extract_mining_title(title_string)
@@ -172,6 +173,7 @@ if st.session_state.get('datos_cargados', False):
         with st.expander("Datos de competidores", expanded=False):
             st.subheader("ASIN de competidores")
             with st.expander("Ver/Ocultar ASINs de Competidores", expanded=True):
+                # La lectura de CompKW para ASINs sigue siendo especial
                 df_comp_asins_raw = pd.read_excel(archivo, sheet_name="CompKW", header=None)
                 asin_raw = str(df_comp_asins_raw.iloc[0, 0])
                 start_index = asin_raw.find('B0')
@@ -270,4 +272,91 @@ if st.session_state.get('datos_cargados', False):
                 df_cust_u = st.session_state.df_cust_unique.iloc[:, [0, 1]].copy()
                 df_cust_u.columns = ['Keyword', 'Frec. Cliente']
                 df_comp_u = st.session_state.df_comp_unique.iloc[:, [0, 1]].copy()
-                df_comp_u
+                df_comp_u.columns = ['Keyword', 'Frec. Comp.']
+                df_mining_u = st.session_state.df_mining_unique.iloc[:, [0, 1]].copy()
+                df_mining_u.columns = ['Keyword', 'Frec. Mining']
+
+                merged_df_u = pd.merge(df_cust_u, df_comp_u, on='Keyword', how='outer')
+                final_df_u = pd.merge(merged_df_u, df_mining_u, on='Keyword', how='outer') if not df_mining_u.empty else merged_df_u.assign(**{'Frec. Mining': 0})
+                
+                freq_cols = ['Frec. Cliente', 'Frec. Comp.', 'Frec. Mining']
+                for col in freq_cols:
+                    if col in final_df_u.columns:
+                        final_df_u[col] = pd.to_numeric(final_df_u[col], errors='coerce').fillna(0).astype(int)
+
+                df_filtered_u = final_df_u[~final_df_u['Keyword'].isin(avoid_list)]
+                df_filtered_u = df_filtered_u[df_filtered_u[freq_cols].ge(umbral_freq).any(axis=1)]
+                
+                if not df_filtered_u.empty:
+                    header_cols_spec = [0.5, 2, 1, 1, 1]
+                    header_cols = st.columns(header_cols_spec)
+                    header_cols[0].write("**Sel.**")
+                    header_cols[1].write("**Keyword**")
+                    header_cols[2].write("**Frec. Cliente**")
+                    header_cols[3].write("**Frec. Comp.**")
+                    header_cols[4].write("**Frec. Mining**")
+                    st.divider()
+
+                    for index, row in df_filtered_u.iterrows():
+                        row_cols = st.columns(header_cols_spec)
+                        row_cols[0].checkbox("", key=f"consolidada_cb_{index}")
+                        row_cols[1].write(row['Keyword'])
+                        row_cols[2].write(str(row['Frec. Cliente']))
+                        row_cols[3].write(str(row['Frec. Comp.']))
+                        row_cols[4].write(str(row['Frec. Mining']))
+
+                    st.divider()
+
+                    if st.button("añadir a Avoids", key="consolidada_add_to_avoids"):
+                        palabras_a_anadir = [row['Keyword'] for index, row in df_filtered_u.iterrows() if st.session_state.get(f"consolidada_cb_{index}")]
+                        if palabras_a_anadir:
+                            st.session_state.palabras_para_categorizar = palabras_a_anadir
+                            st.session_state.show_categorization_form = True
+                            st.rerun()
+                        else:
+                            st.warning("No has seleccionado ninguna palabra.")
+                else:
+                    st.write("No hay palabras únicas para mostrar con los filtros actuales.")
+    
+    with st.expander("Tabla Maestra de Datos Compilados", expanded=True):
+        
+        # Preparar y estandarizar cada fuente de datos por posición
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
+        df_cust['Source'] = 'Cliente'
+        
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
+        df_comp['Source'] = 'Competencia'
+        
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
+        df_mining['Source'] = 'Mining'
+        
+        # Consolidar las tablas limpias
+        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+        
+        # Formatear columnas
+        numeric_cols = ['Search Volume', 'ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share', 'Sample Product Depth', 'Niche Product Depth', 'Relevance']
+        for col in numeric_cols:
+            if col in df_master.columns:
+                df_master[col] = pd.to_numeric(df_master[col], errors='coerce')
+
+        percent_cols = ['ASIN Click Share', 'Total Click Share', 'Sample Click Share', 'Niche Click Share']
+        for col in percent_cols:
+            if col in df_master.columns:
+                mask = df_master[col].notna()
+                df_master.loc[mask, col] = (df_master.loc[mask, col] * 100).round(2).astype(str) + '%'
+        
+        # Reordenar las columnas principales
+        column_order = [
+            'Search Terms', 'Source', 'Search Volume', 
+            'ASIN Click Share', 'Sample Click Share', 'Niche Click Share', 'Total Click Share',
+            'Sample Product Depth', 'Niche Product Depth', 'Relevance'
+        ]
+        
+        existing_cols = [col for col in column_order if col in df_master.columns]
+        df_master = df_master[existing_cols].fillna('N/A')
+
+        st.metric("Total de Registros Compilados", len(df_master))
+        st.dataframe(df_master, height=300)
