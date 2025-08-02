@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import re
@@ -7,10 +8,13 @@ st.set_page_config(page_title="Optimización de Listado", layout="wide")
 def extract_mining_title(title_string):
     if not isinstance(title_string, str):
         return "Título no encontrado"
-    match = re.search(r'US-(.*?)(?:\\(|$|-)', title_string)
-    if match:
-        return match.group(1).strip()
-    return "Título no pudo ser extraído"
+    try:
+        match = re.search(r'US-(.*?)(?:\(|$|-)', title_string)
+        if match:
+            return match.group(1).strip()
+        return "Título no pudo ser extraído"
+    except re.error:
+        return "Título inválido"
 
 def inicializar_datos(archivo_subido):
     try:
@@ -37,6 +41,7 @@ def inicializar_datos(archivo_subido):
     except Exception as e:
         st.error(f"Error al leer las pestañas: {e}")
         st.session_state.datos_cargados = False
+
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 
@@ -48,17 +53,17 @@ if archivo:
 
     if st.session_state.get('datos_cargados', False):
         tabs = st.tabs(["Cliente", "Competidores", "Minería", "Palabras Únicas"])
+
         with tabs[0]:
             st.subheader("Datos del Cliente")
             st.dataframe(st.session_state.df_asin)
-
-            st.subheader("Reverse ASIN del Producto")
             filter_kw = st.text_input("Filtrar Search Terms (Cliente)")
             df_kw = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
             df_kw.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
             if filter_kw:
                 df_kw = df_kw[df_kw["Search Terms"].str.contains(filter_kw, case=False, na=False)]
             st.dataframe(df_kw.reset_index(drop=True), height=400)
+
         with tabs[1]:
             st.subheader("ASINs de Competidores")
             df_comp_header = pd.read_excel(archivo, sheet_name="CompKW", header=None)
@@ -73,6 +78,7 @@ if archivo:
             if filter_comp:
                 df_comp = df_comp[df_comp["Search Terms"].str.contains(filter_comp, case=False, na=False)]
             st.dataframe(df_comp.reset_index(drop=True), height=400)
+
         with tabs[2]:
             st.subheader("Minería de Search Terms")
             filter_mining = st.text_input("Filtrar Search Terms (Minería)")
@@ -81,6 +87,7 @@ if archivo:
             if filter_mining:
                 df_mining = df_mining[df_mining['Search Terms'].str.contains(filter_mining, case=False, na=False)]
             st.dataframe(df_mining.reset_index(drop=True), height=400)
+
         with tabs[3]:
             st.subheader("Palabras Únicas (Avoids)")
             avoids_df = st.session_state.avoids_df
@@ -90,10 +97,23 @@ if archivo:
                 if palabra:
                     categoria = st.radio(f"{palabra}", categorias, horizontal=True, key=f"cat_{index}")
                     if st.button(f"Guardar Categoría {palabra}", key=f"save_{index}"):
-
                         st.success(f"{palabra} categorizada como {categoria}")
+
         st.subheader("Tabla Maestra de Datos Compilados")
-        st.write("Aquí iría la lógica de unión de CustKW, CompKW y MiningKW como ya lo tienes estructurado.")
+        df_cust = st.session_state.df_kw.iloc[:, [0, 1, 15, 25]].copy()
+        df_cust.columns = ["Search Terms", "ASIN Click Share", "Search Volume", "Total Click Share"]
+        df_cust['Source'] = 'Cliente'
+
+        df_comp = st.session_state.df_comp_data.iloc[:, [0, 2, 5, 8, 18]].copy()
+        df_comp.columns = ["Search Terms", "Sample Click Share", "Sample Product Depth", "Search Volume", "Niche Click Share"]
+        df_comp['Source'] = 'Competencia'
+
+        df_mining = st.session_state.df_mining_kw.iloc[:, [0, 2, 5, 12, 15]].copy()
+        df_mining.columns = ['Search Terms', 'Relevance', 'Search Volume', 'Niche Product Depth', 'Niche Click Share']
+        df_mining['Source'] = 'Mining'
+
+        df_master = pd.concat([df_cust, df_comp, df_mining], ignore_index=True, sort=False)
+        st.dataframe(df_master.fillna('N/A'), height=600)
 
 else:
     st.warning("Por favor, sube un archivo Excel para comenzar.")
