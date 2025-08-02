@@ -20,7 +20,7 @@ def extract_mining_title(title_string):
 def inicializar_datos(archivo_subido):
     """Carga los datos del Excel y los guarda en el session_state."""
     try:
-        # Pestañas requeridas (lectura simple)
+        # Pestañas requeridas
         st.session_state.df_asin = pd.read_excel(archivo_subido, sheet_name="CustListing")
         st.session_state.avoids_df = pd.read_excel(archivo_subido, sheet_name="Avoids", header=0)
         st.session_state.df_cust_unique = pd.read_excel(archivo_subido, sheet_name="CustUnique", header=0)
@@ -117,7 +117,15 @@ if st.session_state.get('datos_cargados', False):
                     marketplace, asin, titulo, bullets, descripcion_raw = row.iloc[0], row.iloc[1], row.iloc[2], row.iloc[3], row.iloc[4]
                     descripcion = "Este ASIN tiene contenido A+" if pd.isna(descripcion_raw) or str(descripcion_raw).strip() == "" else descripcion_raw
                     with st.expander(f"ASIN: {asin}"):
-                        st.markdown(f"**Marketplace:** {marketplace}\n\n**Titulo:**\n\n{titulo}\n\n**Bullet Points:**\n\n{bullets}\n\n**Descripción:**\n\n{descripcion}")
+                        st.markdown(f"""
+                        **Marketplace:** {marketplace}
+                        
+                        **Titulo:** {titulo}
+                        
+                        **Bullet Points:** {bullets}
+                        
+                        **Descripción:** {descripcion}
+                        """)
                 except IndexError:
                     st.warning(f"Se omitió la fila {index+1} de 'CustListing' por formato incorrecto.")
             
@@ -128,11 +136,9 @@ if st.session_state.get('datos_cargados', False):
             umbral_clicks = opciones_clicks[seleccion_clicks]
             
             df_kw_proc = st.session_state.df_kw.copy()
-            
-            # --- CORRECCIÓN DE KEYERROR: Usar iloc para acceder a la columna por posición ---
-            columna_filtro_cliente = df_kw_proc.columns[1] # La segunda columna es 'ASIN Click Share'
+
             if not disable_filter_cliente:
-                df_kw_filtrado = df_kw_proc[pd.to_numeric(df_kw_proc[columna_filtro_cliente], errors='coerce').fillna(0) > umbral_clicks].copy()
+                df_kw_filtrado = df_kw_proc[pd.to_numeric(df_kw_proc["ASIN Click Share"], errors='coerce').fillna(0) > umbral_clicks].copy()
             else:
                 df_kw_filtrado = df_kw_proc.copy()
 
@@ -156,11 +162,9 @@ if st.session_state.get('datos_cargados', False):
             
             df_comp_data_proc = st.session_state.df_comp_data.copy()
             
-            # --- CORRECCIÓN DE KEYERROR: Usar iloc para acceder a la columna por posición ---
-            columna_filtro_comp = df_comp_data_proc.columns[5] # La sexta columna es 'Sample Product Depth'
             if not disable_filter_competidores:
-                df_comp_data_proc[columna_filtro_comp] = pd.to_numeric(df_comp_data_proc[columna_filtro_comp], errors='coerce')
-                df_comp_data_proc = df_comp_data_proc[df_comp_data_proc[columna_filtro_comp].notna() & (df_comp_data_proc[columna_filtro_comp] > rango)].copy()
+                df_comp_data_proc['Sample Product Depth'] = pd.to_numeric(df_comp_data_proc['Sample Product Depth'], errors='coerce')
+                df_comp_data_proc = df_comp_data_proc[df_comp_data_proc["Sample Product Depth"].notna() & (df_comp_data_proc["Sample Product Depth"] > rango)].copy()
 
             with st.expander("Ver/Ocultar Reverse ASIN Competidores", expanded=True):
                 st.metric("Total de Términos (Competidores)", len(df_comp_data_proc))
@@ -174,11 +178,9 @@ if st.session_state.get('datos_cargados', False):
                 
                 df_mining_proc = st.session_state.df_mining_kw.copy()
 
-                # --- CORRECCIÓN DE KEYERROR: Usar iloc para acceder a la columna por posición ---
-                columna_filtro_mining = df_mining_proc.columns[2] # La tercera columna es 'Relevance'
                 if not disable_filter_mining:
-                    df_mining_proc[columna_filtro_mining] = pd.to_numeric(df_mining_proc[columna_filtro_mining], errors='coerce').fillna(0)
-                    df_to_display = df_mining_proc[df_mining_proc[columna_filtro_mining] >= umbral_rel].copy()
+                    df_mining_proc['Relevance'] = pd.to_numeric(df_mining_proc['Relevance'], errors='coerce').fillna(0)
+                    df_to_display = df_mining_proc[df_mining_proc['Relevance'] >= umbral_rel].copy()
                 else:
                     df_to_display = df_mining_proc.copy()
 
