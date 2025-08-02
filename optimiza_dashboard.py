@@ -23,7 +23,6 @@ def inicializar_datos(archivo_subido):
         st.session_state.df_comp_unique = pd.read_excel(archivo_subido, sheet_name="CompUnique", header=0)
         st.session_state.df_kw = pd.read_excel(archivo_subido, sheet_name="CustKW", header=1)
         st.session_state.df_comp_data = pd.read_excel(archivo_subido, sheet_name="CompKW", header=1)
-
         xls = pd.ExcelFile(archivo_subido)
         if 'MiningKW' in xls.sheet_names:
             title_df = pd.read_excel(archivo_subido, sheet_name="MiningKW", header=None, nrows=1, engine='openpyxl')
@@ -39,10 +38,10 @@ def inicializar_datos(archivo_subido):
             st.session_state.df_mining_unique = pd.DataFrame()
         st.session_state.datos_cargados = True
     except Exception as e:
-        st.error(f"Error al leer una de las pestañas. Error: {e}")
+        st.error(f"Error al leer las pestañas: {e}")
         st.session_state.datos_cargados = False
 
-# --- UI Principal ---
+# --- Lógica Principal de la App ---
 st.title("Optimización de Listado - Dashboard")
 archivo = st.file_uploader("Sube tu archivo Excel (.xlsx)", type=["xlsx"])
 if archivo:
